@@ -163,81 +163,72 @@ journalctl -u cromwell -f
 exit
 ```
 
+### Set some environment variables on the Google VM
+The following can be saved in the .bashrc for convenience:
+
+```bash
+gcloud compute ssh $GCS_INSTANCE_NAME
+
+export GCS_PROJECT=jlf-rcrf
+export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
+export GCS_BUCKET_NAME=malachi-jlf-immuno
+export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
+export GCS_CASE_NAME=jlf-100-044
+
+```
+
+### Stage input data files to cloud bucket
+
+First install the AWS CLI (this could be moved to the VM setup)
+
+```bash
+cd ~
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+Stage data from wherever it is coming from into the Google bucket. The following is
+an example but will vary from case to case, and relies on you having access/credentials
+for the data.
+
+```bash
+cd ~
+mkdir data
+cd data
+
+aws s3 ls s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/BG004015 .
+
+gsutil cp -r ./BG004015/* gs://malachi-jlf-immuno/input_data/2023-07-28/
+gsutil ls gs://malachi-jlf-immuno/input_data/2023-07-28/
+
+rm -fr ~/data
+
+```
+
 ### Obtain an example configuration (YAML) file on cromwell instance
 Create a directory for YAML files and create one for the desired pipeline that points to the location of input files on your local system
 
 ```bash
 gcloud compute ssh $GCS_INSTANCE_NAME
-mkdir git 
-git clone 
-
+mkdir git
 mkdir yamls
-cd yamls
-```
-
-Setup yaml files for an example run.
-```bash
-cp $WORKING_BASE/git/immuno_gcp_wdl_local/example_yamls/human_GRCh38_ens105/hcc1395_immuno_local-WDL.yaml $WORKING_BASE/yamls/
-```
-
-Note that this YAML file has been set up to work with the HCC1395 raw data files downloaded above. You will need to update the PATHs to the FASTQ files to match the locations you downloaded them to above.
-
-Open the YAML file with an editor and correct all 8 lines that contain paths to input data FASTQ files.
-
-If you are modifying this tutorial to work with your own data, you will need to modify the YAML lines that relate to input sequence files.  For both DNA and RNA files, both FASTQ and Unaligned BAM files are supported as input.  Similarly, you have have your data in one file (or one file pair) or you may have multiple data files that will be merged together. Depending on how your input data is organized the YAML entries will look slightly different.
-
-### Create a copy of reference and annotation files in your Google Bucket
-In the following step, we will make a copy of a bundle of reference files from one Public ("Requestor Pays") Google Bucket into our own Google Bucket as follows:
-
-```bash
-gsutil -u $GCS_PROJECT ls gs://griffith-lab-workflow-inputs/
-gsutil -u $GCS_PROJECT cp -r gs://griffith-lab-workflow-inputs/human_GRCh38_ens105 $GCS_BUCKET_PATH/human_GRCh38_ens105
-gsutil ls $GCS_BUCKET_PATH/human_GRCh38_ens105
+cd ~/git
+git clone https://github.com/malachig/immuno_gcp_wdl_rcrf.git
+cd ~/yamls
+cp ~/git/immuno_gcp_wdl_rcrf/example_yamls/example_immuno_cloud-WDL.yaml .
+mv example_immuno_cloud-WDL.yaml ${GCS_CASE_NAME}_immuno_cloud-WDL.yaml
 
 ```
 
-Note that in the commands above, we must use the `-u` option to specify a project for billing to access a public Google Bucket configured as "Requestor Pays".
-
-### Stage input data files to cloud bucket
-
-The reference and annotation files were already in a Google Bucket and we simply had to copy them from a public Bucket to our own. However, the input FASTQ data files are still on our local system, so we still need to upload them and update our YAML file to point to their new locations on the cloud.
-
-Start an interactive docker session capable of running the "cloudize" scripts. Note that the following docker command uses `--env` commands to pass some convenient environment variables in that were exported above. The first `-v` option is used to allow access to where the data is stored. The second `-v` is used to expose the location of the Google Cloud Credential files.  You will need to update this to reflect your username. The `-it` option is used to make the session interactive and we specify to drop into a `/bin/bash` session. `mgibio/cloudize-workflow:latest` is the docker image we will use.
-
-```bash
-docker pull mgibio/cloudize-workflow:latest
-docker run -it --env GCS_PROJECT --env GCS_BUCKET_NAME --env GCS_BUCKET_PATH --env GCS_INSTANCE_NAME --env GCS_SERVICE_ACCOUNT --env WORKING_BASE --env WORKFLOW_DEFINITION --env LOCAL_YAML --env CLOUD_YAML -v /Users/mgriffit/Desktop/pipeline_test/:/Users/mgriffit/Desktop/pipeline_test/ -v /Users/mgriffit/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
-```
-
-Attempt to cloudize your workflow and inputs
-```bash
-cd $WORKING_BASE/yamls
-python3 /opt/scripts/cloudize-workflow.py $GCS_BUCKET_NAME $WORKFLOW_DEFINITION $WORKING_BASE/yamls/$LOCAL_YAML --output=$WORKING_BASE/yamls/$CLOUD_YAML
-```
-
-Note that this "cloudize" step is primarily about staging input files that you may have locally on your system that need to be copied to a google cloud bucket so that they can be accessed during your workflow run on the cloud. It therefore takes the desired Google Cloud Bucket Name as input. It also takes your Workflow Definition (WDL file) for your pipeline.  It will perform some basic checks of the input expectations of this workflow against the input YAML configuration file you provide. The final input to this script is your input YAML configuration file (the LOCAL YAML). This should contain all the input parameters needed by your workflow, including paths to reference, annotation and data files. If any of the file paths in your input YAML are local paths, this script will attempt to copy them into your bucket. If a file path is already specified as a Google Cloud Bucket path (e.g. gs://PATH ) it will be skipped. The output of the script (the CLOUD YAML), is a version of your YAML that has been updated to point to new paths for any files that were copied into the cloud bucket. This is the YAML you will use to launch your workflow run in the following steps.
-
-If you get an error during this step, a common cause is that there is some disconnect between what inputs you have defined in your YAML file and what the WDL workflow definition expects. Often the error message will hint at where to look in these two files.
-
-### Localize your inputs file
-
-First **on your local system**, copy your cloudized YAML file to a google bucket
-
-```bash
-cd $WORKING_BASE/yamls/
-gsutil cp $CLOUD_YAML $GCS_BUCKET_PATH/yamls/$CLOUD_YAML
-```
-
-Now log into Google Cromwell VM instance again and copy the YAML file to its local file system
-```bash
-gcloud compute ssh $GCS_INSTANCE_NAME
-
-export GCS_BUCKET_PATH=gs://test-immuno-pipeline
-export CLOUD_YAML=hcc1395_immuno_cloud-WDL.yaml
-
-gsutil cp $GCS_BUCKET_PATH/yamls/$CLOUD_YAML .
-
-``` 
+You will now need to update this YAML to correspond to your data in the following ways:
+- Add Google paths to input sequence data files staged above
+- Add sequence metadata and sample names
+- Add RNA-seq strand info
+- If available, add Google bucket paths to validated variants VCF and VCF index
+- If available, add known HLA alleles for the case
+- If desired update any run time parameters
 
 ### Run the immuno workflow using everything setup thus far
 
