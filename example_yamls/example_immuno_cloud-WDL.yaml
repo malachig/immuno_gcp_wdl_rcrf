@@ -3,27 +3,27 @@
 # --------------- Tumor DNA input data files and meta-data --------------
 immuno.tumor_sequence:
 - sequence:
-    fastq1: "gs://malachi-jlf-immuno/input_data/2023-07-28/Tumor_Exome/BG004015_WES-tumor_1.fastq.gz"
-    fastq2: "gs://malachi-jlf-immuno/input_data/2023-07-28/Tumor_Exome/BG004015_WES-tumor_2.fastq.gz"
-  readgroup: "@RG\tID:1\tPU:H7JGFDRX3\tSM:JLF-100-044-tumor-exome\tLB:JLF-100-044-tumor-exome-lib1\tPL:Illumina\tCN:BostonGene"
-immuno.tumor_sample_name: JLF-100-044-tumor-exome
+    fastq1: ""
+    fastq2: ""
+  readgroup: "@RG\tID:1\tPU:\tSM:\tLB:\tPL:Illumina\tCN:"
+immuno.tumor_sample_name: ""
 
 # --------------- Normal DNA input data files and meta-data --------------
 immuno.normal_sequence:
 - sequence:
-    fastq1: "gs://malachi-jlf-immuno/input_data/2023-07-28/Other_Raw_Data/normal-exome/BG004015_WES-normal_1.fastq.gz"
-    fastq2: "gs://malachi-jlf-immuno/input_data/2023-07-28/Other_Raw_Data/normal-exome/BG004015_WES-normal_2.fastq.gz"
-  readgroup: "@RG\tID:2\tPU:H7JGFDRX3\tSM:JLF-100-044-normal-exome\tLB:JLF-100-044-normal-exome-lib1\tPL:Illumina\tCN:BostonGene"
-immuno.normal_sample_name: JLF-100-044-normal-exome
+    fastq1: ""
+    fastq2: ""
+  readgroup: "@RG\tID:2\tPU:\tSM:\tLB:\tPL:Illumina\tCN:"
+immuno.normal_sample_name: ""
 
 # ------------- Tumor RNA sample input data files and meta-data -----------------
 immuno.rna_sequence:
 - sequence:
-    fastq1: "gs://malachi-jlf-immuno/input_data/2023-07-28/RNA/BG004015_RNASeq-tumor_1.fastq.gz"
-    fastq2: "gs://malachi-jlf-immuno/input_data/2023-07-28/RNA/BG004015_RNASeq-tumor_2.fastq.gz"
-  readgroup: "ID:3\tPU:H7JGFDRX3\tSM:JLF-100-044-tumor-rna\tLB:JLF-100-044-tumor-rna-lib1\tPL:Illumina\tCN:BostonGene"
-immuno.sample_name: JLF-100-044-tumor-rna
-immuno.strand: first
+    fastq1: ""
+    fastq2: ""
+  readgroup: "ID:3\tPU:\tSM:\tLB:\tPL:Illumina\tCN:"
+immuno.sample_name: ""
+immuno.strand: ""
 
 # ------------- CLE validated variants for intersection/filtering --------------------
 #Not applicable to this case since sequencing was done outside WASHU CLE lab and we did not receive a VCF from Tempus
