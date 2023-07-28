@@ -174,6 +174,7 @@ export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
 export GCS_BUCKET_NAME=malachi-jlf-immuno
 export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
 export GCS_CASE_NAME=jlf-100-044
+source /shared/helpers.sh
 
 ```
 
@@ -200,7 +201,7 @@ cd data
 aws s3 ls s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/
 aws s3 cp --recursive s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/BG004015 .
 
-gsutil cp -r ./BG004015/* gs://malachi-jlf-immuno/input_data/2023-07-28/
+gsutil cp -r ./* gs://malachi-jlf-immuno/input_data/2023-07-28/
 gsutil ls gs://malachi-jlf-immuno/input_data/2023-07-28/
 
 rm -fr ~/data
@@ -234,7 +235,6 @@ You will now need to update this YAML to correspond to your data in the followin
 
 While logged into the Google Cromwell VM instance:
 ```bash
-source /shared/helpers.sh
 submit_workflow /shared/analysis-wdls/definitions/immuno.wdl $CLOUD_YAML
 
 ```
@@ -254,7 +254,6 @@ After a workflow is run, before exiting and deleting your VM, make sure that the
 First determine you WORKFLOW_ID. This can be done several ways. If the run was successful it should be reported at the bottom of the cromwell log as "$WORKFLOW_ID  completed with status Succeeded". Or you find it by the name of the directory where your run was stored in the Google bucket. Both of these approaches are illustrated here:
 
 ```bash
-export GCS_BUCKET_PATH=gs://test-immuno-pipeline
 gsutil ls $GCS_BUCKET_PATH/cromwell-executions/immuno/
 
 journalctl -u cromwell | tail | grep "Workflow actor"
@@ -263,70 +262,89 @@ journalctl -u cromwell | tail | grep "Workflow actor"
 Now save the workflow information in your google bucket
 ```bash
 export WORKFLOW_ID=<id from above>
-source /shared/helpers.sh
 save_artifacts $WORKFLOW_ID $GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID
 ```
 
 This command will upload the workflow's artifacts to your google bucket so they can be used after the VM is deleted. They can be found at paths:
 
-```bash
-$GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/timing.html
-$GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/outputs.json
-```
-
-Confirm that they were successfully transferred and logout of the Cromwell VM on GCP:
+Confirm that they were successfully transferred to the bucket:
 ```bash
 gsutil ls $GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID
-exit
 ```
 
 The file `outputs.json` will simply be a map of output names to their GCS locations. The `pull_outputs.py` script can be used to retrieve the actual files.
 
-
-### Pulling the Outputs from Google Cloud Bucket back to your local system or cluster
-After the work in your compute instance is all done, including `save_artifacts`, and you want to bring your results back to the cluster, leverage the `pull_outputs.py` script with the generated `outputs.json` to retrieve the files.
-
-On compute1 cluster, jump into a docker container with the script available
+### Install Docker engine on the Google VM
 
 ```bash
-export WORKFLOW_ID=<id from above>
+ 
+# set up repository
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+sudo mkdir -p /etc/apt/keyrings
 
-docker run -it --env WORKFLOW_ID --env GCS_BUCKET_PATH --env WORKING_BASE -v /Users/mgriffit/Desktop/pipeline_test/:/Users/mgriffit/Desktop/pipeline_test/ -v /Users/mgriffit/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# install docker engine
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+#add user
+sudo usermod -a -G docker $USER
+sudo reboot
+
+```
+
+The reboot will will kick you out of the instance.  Log in again and test the docker install
+
+```bash
+gcloud compute ssh $GCS_INSTANCE_NAME
+
+# test install
+docker run hello-world
+
+```
+
+### Pulling the Outputs from Google Cloud Bucket back to the Google VM
+After the workflow is complete, including `save_artifacts`, and you want to bring your results back to the VM, leverage the `pull_outputs.py` script with the generated `outputs.json` to retrieve the files.
+
+
+On the Google VM, jump into a docker container with the script available
+
+```bash
+journalctl -u cromwell | tail | grep "Workflow actor"
+export WORKFLOW_ID=<id from above>
+export WORKING_BASE=$HOME/final_results
+cd $WORKING_BASE
+mkdir final_results
+cd final_results
+
+docker run -it --env WORKFLOW_ID --env GCS_BUCKET_PATH --env WORKING_BASE -v $WORKING_BASE/:WORKING_BASE/ -v $HOME/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
 
 ```
 
 Execute the script:
 
 ```bash
-cd $WORKING_BASE
-mkdir final_results
-cd final_results
-
 python3 /opt/scripts/pull_outputs.py --outputs-file=$GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/outputs.json --outputs-dir=$WORKING_BASE/final_results/
 exit
+
 ```
 
 Examine the outputs briefly:
 ```bash 
-cd $WORKING_BASE/final_results
+cd $WORKING_BASE
 ls -l
 du -h
 
 ```
 
-### Estimate the cost of executing your workflow
+### Store the final results in the RCRF S3 bucket 
 
-On compute1 cluster, start an interactive docker session as describe below and then use the following python script to generate a cost estimate:
+...
 
-```bash
-export WORKFLOW_ID=<id from above>
-
-docker run -it --env WORKFLOW_ID --env GCS_BUCKET_PATH --env WORKING_BASE -v /Users/mgriffit/Desktop/pipeline_test/:/Users/mgriffit/Desktop/pipeline_test/ -v /Users/mgriffit/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
-
-cd $WORKING_BASE/git/cloud-workflows/scripts
-python3 estimate_billing.py $WORKFLOW_ID $GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/metadata/
-exit
-```
 
 ### Once the workflow is done and results retrieved, destroy the Cromwell VM on GCP to avoid wasting resources
 
