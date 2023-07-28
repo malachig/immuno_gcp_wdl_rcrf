@@ -1,57 +1,63 @@
 # Running the WASHU Immunogenomics Workflow on Google Cloud - RCRF version
 
 ## Preamble
-This tutorial demonstrates how to run the WASHU immunogenomics pipeline (immuno.wdl) on Google Cloud.
+This doc demonstrates how to run the WASHU immunogenomics pipeline (immuno.wdl) on Google Cloud.
 
-The same principles described in this tutorial should work for any of our collection of WDL files found here: https://github.com/griffithlab/analysis-wdls.
+The same principles described in this tutorial should work for any of our collection of WDL files found here: https://github.com/wustl-oncology/analysis-wdls.
 
 This workflow run will be accomplished by first setting up workflow definitions, input data and 
-reference files and a YAML config file on a user's local system. The user will also set up a Google Cloud 
-environment and all the inputs will be staged to this cloud environment. Next Cromwell will be used to execute the pipeline using the specified input and reference files, and finally the results will be pulled back to the local system and cloud resources will be cleaned up. 
-
-Some steps are run within docker containers. It therefore requires that you have the ability to run interative docker sessions on your system.
+reference files and a YAML config file on a user local system and a Google VM. The user will set 
+up a Google Cloud environment and all the inputs will be staged to this cloud environment. Next 
+Cromwell will be used to execute the pipeline using the specified input and reference files, and 
+finally the results will be stored in a cloud bucket and cloud resources and intermediate files 
+will be cleaned up. 
 
 You will interact with the Google Cloud in several ways:
 1. From your local system using command line tools, including `gcloud` and `gsutil`.
-2. We will create a Google Virtual Machine (VM) and start a Cromwell service on it. You will then login to this VM and perform some commands and monitoring of workflow progress there. Cromwell on this VM will orchestrate creation and use of many additional worker VMs that complete all the compute tasks of the workflow.
-3. The Google Cloud Console in your web browser may be used to visualize/monitor usage of cloud resources. In the Console you will see most relevant resources in the "Cloud Storage" and "Compute Engine" sections.
+2. We will create a Google Virtual Machine (VM) and start a Cromwell service on it. You will then 
+login to this VM and perform some commands and monitoring of workflow progress there. Cromwell on 
+this VM will orchestrate creation and use of many additional worker VMs that complete all the compute 
+tasks of the workflow.
+3. The Google Cloud Console in your web browser may be used to visualize/monitor usage of cloud 
+resources. In the Console you will see most relevant resources in the "Cloud Storage" and 
+"Compute Engine" sections.
 
-This version assumes that your are staging your input data files from your local system (e.g. a laptop, but could be any system really). All input files will be staged to a Google Storage Bucket. During the workflow, all results files will be also be stored in this Bucket. At the end of the tutorial the final results will be copied back to your local system.
+This version assumes that your are staging input data files from an RCRF AWS S3 Cloud Bucket. All input files 
+will be staged to a Google Storage Bucket. During the workflow, all results files will be also be stored 
+in this Bucket. At the end of the workflow the final results will be copied back to an RCRF AWS S3 Bucket.
 
-After completing the workflow, ALL resources used on the cloud can be destroyed. One possible exception to this may occur if you need custom reference files that you wish to persist for many analyses. However, for this tutorial reference files will be accessed from a separate public bucket that we have created to support this workflow.
+After completing the workflow, ALL resources used on the Google cloud can be destroyed. One exception 
+to this may occur if you need custom reference files that you wish to persist for many analyses. However, for 
+this demonstration, reference files will be accessed from a separate public bucket that we have created to 
+support this workflow.
 
 A brief note on command line sessions. Almost everything below will occur at the command line. It is very easy to get confused about the kind of sessions used. There are three types that will be used:
 1. A terminal session on your local system (e.g. using the Terminal App on a Mac laptop)
-2. Within session (1) you may launch a docker interative session (via `docker run -it`) to use tools we have created for setting up the workflow
-3. Within session (1) you may login (via `gcloud compute ssh`) to the Google Virtual Machine where Cromwell is running.
+2. Within session (1) you may login (via `gcloud compute ssh`) to the Google Virtual Machine where Cromwell is running.
+3. Within session (2) you may login to an interactive docker session using specific docker images.
 
 ### Source of instructions
-This tutorial is a specific example of how to run a specific pipeline (immuno) on a specific example dataset (HCC1395 Tumor/normal cell line pair). The steps below are taken from the following link where you will find a more generic set of documentation that explains in detail how to run any WDL pipeline on the Google Cloud using tools created to assist this process. 
-https://github.com/griffithlab/cloud-workflows/tree/main/manual-workflows
+This documents describes a specific example of how to run a specific pipeline (immuno). The steps below are taken from the following link where you will find a more generic set of documentation that explains in detail how to run any WDL pipeline on the Google Cloud using tools created to assist this process. 
+https://github.com/wustl-oncology/cloud-workflows/tree/main/manual-workflows
 
 ### Prerequisites
-- docker
 - google-cloud-sdk
-- git
-
-### Example data set and analysis to be performed
-To demonstrate an analysis on the Google cloud we will run the WASHU immunogenomics pipeline on a publicly available set of exome and bulk RNA-seq data generated for a tumor/normal cell line pair (HCC1395 and HCC1395/BL). The HCC1395 cell line is a well known breast cancer cell line that can be purchased and is commonly used for benchmarking cancer genomics analysis and methods development. The datasets we will use here are realistic deeply sequenced exome and RNA-seq data. The immunogenomics pipeline is a very elaborate end-to-end pipeline that starts with raw data and performs data QC, germline variant calling, somatic variant calling (multiple variant callers and variant types), HLA typing, RNA expression analysis and neoantigen identification.  
 
 ### Setting up a Google Cloud account
-In order to do analysis on the Google Cloud, you will need an account. Ideally this will be an account linked to your institution/company. Before proceeding, you should set up this account, log into it and make sure you have access to billing information: https://console.cloud.google.com/.
+In order to do analysis on the Google Cloud, you will need access to the RCRF GCP account. Before proceeding, log into it and make sure you have access to the project: 'jlf-rcrf'.
 
 Some notes on account set up once your are logged in:
-- Create a new project. In this tutorial we use project name: 'test-immuno'. When using the Google Web Console, remember to select this project in the top left corner.
+- When you log into the GCP console make sure the correct project is selected (top left corner): 'jlf-rcrf'. 
 - Create billing alerts! In the Google Cloud Web Console, select: Billing -> Budgets & alerts -> Create Budget. How you set up your alerts will depend on your anticipated level of use/expenditure. For example, you might set at $500 budget and then set up alerts to be sent at 50%, 100%, 200%, ..., X% of that budget.
-- Choose a name for the Google bucket that will be used for this tutorial. Note that you don't need to create it in the console because this will be handled automatically for you below. We will use the bucket name 'test-immuno-pipeline' below.
+- Choose a name for the Google bucket that will be used for this tutorial. We recommend the following convention: 'malachi-jlf-immuno' below. This will help keep multiple parallel analyses separate.
  
 Some notes on quotas:
 - If you have not been using your account for high performance computing, it is likely that by default you have quotas in place that will cause the very large immuno.wdl workflow to fail. For example, you may not be able to use enough CPUs, IP addresses and disk space at once to get this workflow to run. If you see errors that mention quotas, or sound like fundamental network failures, check your quotas in the Google Cloud Console (IAM & Admin -> Quotas) and work with your Google account contact to increase your quotas. If your institution has already been using Google Cloud in any serious way, this is less likely to be a problem. 
 
 Example quotas you might need to request:
-- `cpus` -> `us-central1` -> `100`
-- `preemptible_cpus` -> `us-central1` -> `100`
-- `In-use IP addresses` -> `us-central1` -> `25`
+- `cpus` -> `us-central1` -> `200`
+- `preemptible_cpus` -> `us-central1` -> `200`
+- `In-use IP addresses` -> `us-central1` -> `100`
 - `Persistent Disk SSD (GB)` -> `us-central1` -> `10 TB`
 
 ### Interacting with Google buckets from your local system
@@ -60,23 +66,31 @@ Note that, if needed, you can use the following docker image to access `gsutil` 
 ## Step-by-step instructions
 Start by opening a Terminal session on your local system
 
-### Set some Google Cloud and other environment variables
+### Set some Google Cloud and other environment variables on your local system
 The following environment variables are used merely for convenience and should be customized to produce intuitive labeling for your own analysis:
 
 ```bash
-export GCS_PROJECT=test-immuno
+export GCS_PROJECT=jlf-rcrf
 export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
-export GCS_BUCKET_NAME=test-immuno-pipeline
-export GCS_BUCKET_PATH=gs://test-immuno-pipeline
-export GCS_INSTANCE_NAME=mg-immuno-test
-export WORKING_BASE=~/Desktop/pipeline_test/gcp_wdl_test
-export RAW_DATA_DIR=~/Desktop/pipeline_test/raw_data
-export WORKFLOW_DEFINITION=$WORKING_BASE/git/analysis-wdls/definitions/immuno.wdl
-export LOCAL_YAML=hcc1395_immuno_local-WDL.yaml
-export CLOUD_YAML=hcc1395_immuno_cloud-WDL.yaml
+export GCS_BUCKET_NAME=malachi-jlf-immuno
+export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
+export GCS_CASE_NAME=jlf-100-044
+export GCS_INSTANCE_NAME=mg-immuno-${GCS_CASE_NAME}
+export WORKING_BASE=~/Desktop/rcrf/$GCS_CASE_NAME
 ```
 
-NOTE: You will need to manually create the Google billing project in the console before proceeding
+### Login to GCP and set the desired project on your local system
+From the command line, you will need to authenticate your cloud access (using your google cloud account credentials). This generally only needs to be done once, though there is no harm to re-authenticating. The login command below will generate a custom URL to enter in your browser. Once you do this, you will be prompted to log into your Google account. If you have multiple Google accounts (e.g. one for your institution/company and a personal one) be sure to use the correct one.  Once you have logged in you will be presented with a long code. Enter this at the prompt generated by the login command below. Finally, set your desired Google Project. This Project should correspond to a Google Billing account in the Google console. If you are using Google Cloud for the first time, both billing and a project should be set up before proceeding. Configuring billing alerts is also probably wise at this point.
+```bash
+gcloud auth login
+gcloud config set project $GCS_PROJECT
+gcloud config list
+```
+
+
+
+
+
 
 ## Local setup
 
@@ -95,14 +109,6 @@ cd git
 git clone git@github.com:griffithlab/immuno_gcp_wdl_local.git # (v1.0.0)
 git clone git@github.com:griffithlab/analysis-wdls.git # (v.1.0.0)
 git clone git@github.com:griffithlab/cloud-workflows.git # (v.1.3.0)
-```
-
-### Login to GCP and set the desired project
-From the command line, you will need to authenticate your cloud access (using your google cloud account credentials). This generally only needs to be done once, though there is no harm to re-authenticating. The login command below will generate a custom URL to enter in your browser. Once you do this, you will be prompted to log into your Google account. If you have multiple Google accounts (e.g. one for your institution/company and a personal one) be sure to use the correct one.  Once you have logged in you will be presented with a long code. Enter this at the prompt generated by the login command below. Finally, set your desired Google Project. This Project should correspond to a Google Billing account in the Google console. If you are using Google Cloud for the first time, both billing and a project should be set up before proceeding. Configuring billing alerts is also probably wise at this point.
-```bash
-gcloud auth login
-gcloud config set project $GCS_PROJECT
-gcloud config list
 ```
 
 The `gcloud config list` command can be used to remind yourself how you are currently authenticated to use Google Cloud Services. This can be helpful because on your host machine, you will be authenticated using your personal account. However, on the Google VM where the workflow will be orchestrated by Cromwell, you will be authenticated using a "service" account. 
