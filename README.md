@@ -174,6 +174,7 @@ export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
 export GCS_BUCKET_NAME=malachi-jlf-immuno
 export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
 export GCS_CASE_NAME=jlf-100-044
+
 source /shared/helpers.sh
 
 ```
@@ -235,7 +236,8 @@ You will now need to update this YAML to correspond to your data in the followin
 
 While logged into the Google Cromwell VM instance:
 ```bash
-submit_workflow /shared/analysis-wdls/definitions/immuno.wdl $CLOUD_YAML
+cd ~
+submit_workflow /shared/analysis-wdls/definitions/immuno.wdl ~/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml
 
 ```
 
