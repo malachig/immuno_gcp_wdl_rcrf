@@ -316,21 +316,22 @@ After the workflow is complete, including `save_artifacts`, and you want to brin
 On the Google VM, jump into a docker container with the script available
 
 ```bash
+gsutil ls $GCS_BUCKET_PATH/workflow_artifacts/
 journalctl -u cromwell | tail | grep "Workflow actor"
 export WORKFLOW_ID=<id from above>
 export WORKING_BASE=$HOME/final_results
+cd $HOME
+mkdir $WORKING_BASE
 cd $WORKING_BASE
-mkdir final_results
-cd final_results
 
-docker run -it --env WORKFLOW_ID --env GCS_BUCKET_PATH --env WORKING_BASE -v $WORKING_BASE/:WORKING_BASE/ -v $HOME/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
+docker run -it --env WORKFLOW_ID --env GCS_BUCKET_PATH --env WORKING_BASE -v $WORKING_BASE/:$WORKING_BASE/ -v $HOME/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
 
 ```
 
 Execute the script:
 
 ```bash
-python3 /opt/scripts/pull_outputs.py --outputs-file=$GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/outputs.json --outputs-dir=$WORKING_BASE/final_results/
+python3 /opt/scripts/pull_outputs.py --outputs-file=$GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/outputs.json --outputs-dir=$WORKING_BASE/
 exit
 
 ```
@@ -338,15 +339,24 @@ exit
 Examine the outputs briefly:
 ```bash 
 cd $WORKING_BASE
+sudo chown -R $USER:$USER .
 ls -l
 du -h
 
 ```
 
 ### Store the final results in the RCRF S3 bucket 
+Use AWS cli to upload final results files to S3
 
-...
+```bash
+cd $WORKING_BASE
+aws s3 ls s3://rcrf-h37-data/JLF/JLF-100-044/
+aws s3 cp $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml s3://rcrf-h37-data/JLF/JLF-100-044/gcp_immuno_workflow/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml 
+aws s3 cp --recursive $WORKING_BASE s3://rcrf-h37-data/JLF/JLF-100-044/gcp_immuno_workflow/
 
+exit
+
+```
 
 ### Once the workflow is done and results retrieved, destroy the Cromwell VM on GCP to avoid wasting resources
 
@@ -358,5 +368,4 @@ gcloud compute instances delete $GCS_INSTANCE_NAME
 
 You can empty the cloud bucket either in the Web Console or using commands like `gsutil rm -r $GCS_BUCKET_PATH/folder-name`.
 
-Finally, you should perform a survey of Cloud Storage and Compute Engine sections in the Google Cloud Web Console to make sure everything has been cleaned up successfully..
-
+Finally, you should perform a survey of Cloud Storage and Compute Engine sections in the Google Cloud Web Console to make sure everything has been cleaned up successfully.
