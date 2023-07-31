@@ -346,14 +346,15 @@ du -h
 ```
 
 ### Store the final results in the RCRF S3 bucket 
-Use AWS cli to upload final results files to S3
+Use AWS cli to upload final results files to S3.  Make sure you update the paths below to correspond to the correct patient!
 
 ```bash
 cd $WORKING_BASE
-aws s3 ls s3://rcrf-h37-data/JLF/JLF-100-044/
-aws s3 cp $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml s3://rcrf-h37-data/JLF/JLF-100-044/gcp_immuno_workflow/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml 
-aws s3 cp --recursive $WORKING_BASE s3://rcrf-h37-data/JLF/JLF-100-044/gcp_immuno_workflow/
-
+export PATIENT_ID="JLF-100-044"
+aws s3 ls s3://rcrf-h37-data/JLF/${PATIENT_ID}/
+aws s3 cp $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml 
+aws s3 cp --recursive $WORKING_BASE s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/
+aws s3 ls s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/
 exit
 
 ```
