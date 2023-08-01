@@ -345,6 +345,40 @@ du -h
 
 ```
 
+### Rerun pVACseq with custom parameters
+In some circumstances it may be desirable to rerun pVACseq to use a corrected set of HLA alleles, to alter default filtering, 
+parameters, etc.  The following is an example of how to do that.
+
+```bash
+cd $HOME
+cat final_results/hla_typing/consensus_calls.txt
+export HLA_ALLELES="HLA-A*24:02,HLA-A*24:02,HLA-B*07:02,HLA-B*35:01,HLA-C*07:02,HLA-C*04:01,DQA1*01:03,DQA1*04:01,DQB1*04:02,DQB1*06:03,DRB1*08:02,DRB1*13:01"
+export OUTDIR=$HOME/pvacseq-v4
+mkdir -p $OUTDIR
+
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/rna_seq_annotation/Homo_sapiens.GRCh38.pep.all.fa.gz .
+
+TUMOR_SAMPLE=$(cat $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml | grep immuno.tumor_sample_name | cut -d ":" -f 2 | tr -d " " | tr -d \")
+NORMAL_SAMPLE=$(cat $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml | grep immuno.normal_sample_name | cut -d ":" -f 2 | tr -d " " | tr -d \")
+echo $TUMOR_SAMPLE
+echo $NORMAL_SAMPLE
+
+pvacseq run $HOME/final_results/annotated.expression.vcf.gz \
+            $TUMOR_SAMPLE \
+            $HLA_ALLELES \
+            all $OUTDIR \
+            -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --iedb-install-directory /opt/iedb \
+            -b 500  -m median -k -t 8 --run-reference-proteome-similarity \
+            --aggregate-inclusion-binding-threshold 5000 \
+            --peptide-fasta $HOME/Homo_sapiens.GRCh38.pep.all.fa.gz \
+            -d 100 --normal-sample-name $NORMAL_SAMPLE --problematic-amino-acids C \
+            -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+            -c 0 --normal-cov 20 --tdna-cov 20 --trna-cov 10 --normal-vaf 0.01 --allele-specific-anchors \
+            --tdna-vaf 0.05 --trna-vaf 0.05 --expn-val 1.0 --maximum-transcript-support-level 1 --pass-only 
+
+```
+
+
 ### Store the final results in the RCRF S3 bucket 
 Use AWS cli to upload final results files to S3.  Make sure you update the paths below to correspond to the correct patient!
 
