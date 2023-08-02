@@ -358,17 +358,19 @@ mkdir -p $OUTDIR
 
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/rna_seq_annotation/Homo_sapiens.GRCh38.pep.all.fa.gz .
 
-TUMOR_SAMPLE=$(cat $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml | grep immuno.tumor_sample_name | cut -d ":" -f 2 | tr -d " " | tr -d \")
-NORMAL_SAMPLE=$(cat $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml | grep immuno.normal_sample_name | cut -d ":" -f 2 | tr -d " " | tr -d \")
+export TUMOR_SAMPLE=$(cat $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml | grep immuno.tumor_sample_name | cut -d ":" -f 2 | tr -d " " | tr -d \")
+export NORMAL_SAMPLE=$(cat $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml | grep immuno.normal_sample_name | cut -d ":" -f 2 | tr -d " " | tr -d \")
 echo $TUMOR_SAMPLE
 echo $NORMAL_SAMPLE
+
+docker run -it --env HOME --env HLA_ALLELES --env OUTDIR --env TUMOR_SAMPLE --env NORMAL_SAMPLE -v $HOME/:$HOME/ -v /shared/:/shared/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
 
 pvacseq run $HOME/final_results/annotated.expression.vcf.gz \
             $TUMOR_SAMPLE \
             $HLA_ALLELES \
             all $OUTDIR \
             -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --iedb-install-directory /opt/iedb \
-            -b 500  -m median -k -t 8 --run-reference-proteome-similarity \
+            -b 500  -m median -k -t 2 --run-reference-proteome-similarity \
             --aggregate-inclusion-binding-threshold 5000 \
             --peptide-fasta $HOME/Homo_sapiens.GRCh38.pep.all.fa.gz \
             -d 100 --normal-sample-name $NORMAL_SAMPLE --problematic-amino-acids C \
