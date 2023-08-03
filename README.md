@@ -395,6 +395,68 @@ exit
 
 ```
 
+
+### Run the generate protein fasta step after ITB review is complete
+
+After the ITB review is complete, stage the resulting candidates TSV file to the Google VM and use it to generate the long peptide sequence spreadsheet and fasta files that will be needed to complete the peptide order forms.
+
+```bash
+cd $HOME
+mkdir generate_protein_fasta
+cd generate_protein_fasta
+mkdir candidates
+mkdir all
+
+gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
+
+#generate a protein fasta file using the final annotated/evaluated neoantigen candidates TSV as input
+#this will filter down to only those candidates under consideration and use the top transcript
+export PATIENT_ID="JLF-100-044"
+export ITB_REVIEW_FILE=${PATIENT_ID}-Reviewed-Annotated.Neoantigen_Candidates.tsv
+
+docker run -it --env HOME --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v /shared/:/shared/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+
+pvacseq generate_protein_fasta \
+      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      --pass-only --mutant-only -d 150 \
+      -s ${PATIENT_ID}-tumor-exome \
+      --aggregate-report-evaluation {Accept,Review} \
+      --input-tsv $HOME/generate_protein_fasta/$ITB_REVIEW_FILE \
+      $HOME/final_results/annotated.expression.vcf.gz \
+      25 \
+      $HOME/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
+
+#in somes cases the top candidate may not be the best one (e.g. a different transcript is found to be better during review)
+#generate the unfiltered result so that one can consider alternatives
+pvacseq generate_protein_fasta \
+      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      --pass-only --mutant-only -d 150 \
+      -s ${PATIENT_ID}-tumor-exome \
+      $HOME/final_results/annotated.expression.vcf.gz \
+      25 \
+      $HOME/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
+
+exit
+
+```
+
+Stage these additional results files to the Google bucket so that they can be added to the Google Drive for this case
+
+```bash
+cd $HOME
+gsutil cp -r generate_protein_fasta gs://malachi-jlf-immuno/generate_protein_fasta
+
+exit
+```
+
+The on your local system download this same folder and drop it into the Google Drive
+```bash
+cd $WORKING_BASE
+gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
+
+```
+
+
 ### Once the workflow is done and results retrieved, destroy the Cromwell VM on GCP to avoid wasting resources
 
 Use the following commmand to destroy the Cromwell VM. 
