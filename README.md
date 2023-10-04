@@ -487,6 +487,27 @@ gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
 
 ```
 
+### Generating the Peptides Order Form
+
+```bash
+# Files needed for Peptide Order Sheet Coloring
+mkdir pVACseq
+cd pVACSeq
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/pVACseq/ . 
+cd $WORKING_BASE
+
+docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud evelyns2000/neoang_scripts:latest /bin/bash
+
+cd $WORKING_BASE
+
+export SAMPLE=SAMPLE_NAME
+
+python3 /opt/scripts/setup_review.py -a ../itb-review-files/$SAMPLE.revd.Annotated.Neoantigen_Candidates.xlsx -c ../generate_protein_fasta/candidates/$SAMPLE.annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -samp $SAMPLE  -classI $WORKING_BASE/final_results/pVACseq/mhc_i/$SAMPLE-tumor-exome.all_epitopes.aggregated.tsv -classII $WORKING_BASE/final_results/pVACseq/mhc_ii/$SAMPLE-tumor-exome.all_epitopes.aggregated.tsv -o colored_peptides51mer.html
+
+```
+
+Open colored_peptides51mer.html and copy the table into an excel spreadsheet. The formatting should remain. Utilizing the Annotated.Neoantigen_Candidates and colored Peptides_51-mer for manual review.
+
 
 ### Once the workflow is done and results retrieved, destroy the Cromwell VM on GCP to avoid wasting resources
 
