@@ -395,7 +395,38 @@ exit
 
 ```
 
+### Gather basic QC for Final report
+Pull the basic data qc from various files. This script will output a file final_results/qc_file.txt and also print the summary to to screen.
+This instructions assume you have none of the the immuno final result files downloaded from AWS.
 
+```bash
+export WORKING_BASE=/Users/evelynschmidt/jlf/JLF-100-047
+export PATIENT_ID=JLF-100-047
+export GCS_CASE_NAME=jlf-100-047-bg004733
+export CLOUD_YAML=jlf-100-047-bg004733_immuno_cloud-WDL.yaml
+
+cd $WORKING_BASE
+mkdir yamls
+cd yamls
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/${CLOUD_YAML} . 
+cd $WORKING_BASE
+
+mkdir final_results
+cd final_results
+
+mkdir qc
+cd qc
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/qc/ . 
+cd $WORKING_BASE
+
+docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud evelyns2000/neoang_scripts:latest /bin/bash
+
+cd $WORKING_BASE
+
+python3 /opt/scripts/get_neoantigen_qc.py -WB $WORKING_BASE -f final_results --yaml $WORKING_BASE/yamls/$CLOUD_YAML
+python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
+
+```
 ### Run the generate protein fasta step after ITB review is complete
 
 After the ITB review is complete, stage the resulting candidates TSV file to the Google VM and use it to generate the long peptide sequence spreadsheet and fasta files that will be needed to complete the peptide order forms.
