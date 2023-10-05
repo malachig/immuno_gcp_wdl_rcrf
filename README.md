@@ -419,13 +419,14 @@ cd qc
 aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/qc/ . 
 cd $WORKING_BASE
 
-docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud evelyns2000/neoang_scripts:latest /bin/bash
+docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
 
-cd $WORKING_BASE
+mkdir $WORKING_BASE/../manual_review
+cd $WORKING_BASE/../manual_review
 
 python3 /opt/scripts/get_neoantigen_qc.py -WB $WORKING_BASE -f final_results --yaml $WORKING_BASE/yamls/$CLOUD_YAML
 python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
-
+exit
 ```
 ### Run the generate protein fasta step after ITB review is complete
 
@@ -496,13 +497,13 @@ cd pVACSeq
 aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/pVACseq/ . 
 cd $WORKING_BASE
 
-docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud evelyns2000/neoang_scripts:latest /bin/bash
+docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
 
-cd $WORKING_BASE
+cd $WORKING_BASE/../manual_review
 
-export SAMPLE=SAMPLE_NAME
+export SAMPLE="TWJF-10146-0029"
 
-python3 /opt/scripts/setup_review.py -a ../itb-review-files/$SAMPLE.revd.Annotated.Neoantigen_Candidates.xlsx -c ../generate_protein_fasta/candidates/$SAMPLE.annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -samp $SAMPLE  -classI $WORKING_BASE/final_results/pVACseq/mhc_i/$SAMPLE-tumor-exome.all_epitopes.aggregated.tsv -classII $WORKING_BASE/final_results/pVACseq/mhc_ii/$SAMPLE-tumor-exome.all_epitopes.aggregated.tsv -o colored_peptides51mer.html
+python3 /opt/scripts/setup_review.py -WB $WORKING_BASE -a $WORKING_BASE/ -a ../itb-review-files/*.xlsx -c $WORKING_BASE/../generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -samp $SAMPLE  -classI $WORKING_BASE/final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII $WORKING_BASE/final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv 
 
 ```
 
