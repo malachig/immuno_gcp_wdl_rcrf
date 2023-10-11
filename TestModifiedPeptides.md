@@ -85,6 +85,29 @@ docker run hello-world
 ### Create N-term and C-term modified peptide lists for processing
 The following is an example that assumes you have saved your peptides in a tabular format "peptide_table.tsv" with no header and three columns: (a) unique peptide name, (b) peptide sequence, (c) parsable peptide sequence with a "|" separating the wild type sequence from the additional amino acids to improve solubility. This initial file could be created by copy/paste of the proposed peptides from an excel spreadsheet.
 
+Example of format of the input peptides table:
+```bash
+CCND2.1.n-term-K	KKFAMYPLSMIATGSVG	K|KFAMYPLSMIATGSVG
+CCND2.1.n-term-KK	KKKFAMYPLSMIATGSVG	KK|KFAMYPLSMIATGSVG
+CCND2.1.n-term-KKK	KKKKFAMYPLSMIATGSVG	KKK|KFAMYPLSMIATGSVG
+CCND2.1.n-term-R	RKFAMYPLSMIATGSVG	R|KFAMYPLSMIATGSVG
+CCND2.1.n-term-RR	RRKFAMYPLSMIATGSVG	RR|KFAMYPLSMIATGSVG
+CCND2.1.n-term-RRR	RRRKFAMYPLSMIATGSVG	RRR|KFAMYPLSMIATGSVG
+CCND2.2.n-term-K	KTDFKFAMYPLSMIATGSVG	K|TDFKFAMYPLSMIATGSVG
+CCND2.2.n-term-KK	KKTDFKFAMYPLSMIATGSVG	KK|TDFKFAMYPLSMIATGSVG
+CCND2.2.n-term-R	RTDFKFAMYPLSMIATGSVG	R|TDFKFAMYPLSMIATGSVG
+CCND2.2.n-term-RR	RRTDFKFAMYPLSMIATGSVG	RR|TDFKFAMYPLSMIATGSVG
+SLC35E4.2.c-term-KK	GGGTSPARVFETWGISGATWDKK	GGGTSPARVFETWGISGATWD|KK
+SLC35E4.2.c-term-RR	GGGTSPARVFETWGISGATWDRR	GGGTSPARVFETWGISGATWD|RR
+SLC35E4.2.c-term-KR	GGGTSPARVFETWGISGATWDKR	GGGTSPARVFETWGISGATWD|KR
+SLC35E4.2.c-term-RK	GGGTSPARVFETWGISGATWDRK	GGGTSPARVFETWGISGATWD|RK
+SLC35E4.3.c-term-KK	GSRLSALSYVGSHSLFQEKK	GSRLSALSYVGSHSLFQE|KK
+SLC35E4.3.c-term-RR	GSRLSALSYVGSHSLFQERR	GSRLSALSYVGSHSLFQE|RR
+SLC35E4.3.c-term-KR	GSRLSALSYVGSHSLFQEKR	GSRLSALSYVGSHSLFQE|KR
+SLC35E4.3.c-term-RK	GSRLSALSYVGSHSLFQERK	GSRLSALSYVGSHSLFQE|RK
+```
+
+
 ```bash
 #count the number of entries in the input file
 wc -l peptide_table.tsv
