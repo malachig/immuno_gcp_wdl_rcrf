@@ -193,6 +193,26 @@ done
 ```
 
 ### Combine all the pVACbind results into a single file and retrieve this result
+Create a combined TSV file by concatenating all the individual "all_epitopes.tsv" files and avoiding redundant headers. Store this file locally (or in a cloud bucket) so that it can be accessed after the VM is destroyed.
+
+```
+
+...
+
+
+```
+
+### Evaluate the proposed modified peptide sequences
+The goal of this analysis is to test whether any strong binding peptides are created that include the modified amino acid sequences included to improve solubility. For example, one could require that no such peptides exist where the median binding affinity is < 500nm OR median binding score percentile is < 1%.
+
+For each candidate modified peptide sequence, summarize the number of such potentially problematic peptides. 
+
+```bash
+
+...
+
+
+```
 
 
 ### Once the analysis is done and results retrieved, destroy the Google VM on GCP to avoid wasting resources
@@ -204,15 +224,6 @@ exit
 gcloud compute instances delete $GCS_VM_NAME
 
 ```
-
-
-
-
-
-
-
-
-
 
 
 
