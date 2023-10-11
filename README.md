@@ -449,14 +449,20 @@ cd generate_protein_fasta
 mkdir candidates
 mkdir all
 
+mkdir itb-review-files
 gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
+gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.xscl .
 
 cd final_results
 aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
 
 #generate a protein fasta file using the final annotated/evaluated neoantigen candidates TSV as input
 #this will filter down to only those candidates under consideration and use the top transcript
-export PATIENT_ID="JLF-100-044"
+
+# check the file to find sample ID in the #CHROM header of VCF
+gzcat annotated.expression.vcf.gz | less
+export PATIENT_ID="100-049-BG004667"
+
 export ITB_REVIEW_FILE=${PATIENT_ID}-Reviewed-Annotated.Neoantigen_Candidates.tsv
 
 docker run -it --env WORKING_BASE --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
@@ -468,7 +474,7 @@ pvacseq generate_protein_fasta \
       --pass-only --mutant-only -d 150 \
       -s ${PATIENT_ID}-tumor-exome \
       --aggregate-report-evaluation {Accept,Review} \
-      --input-tsv $WORKING_BASE/generate_protein_fasta/$ITB_REVIEW_FILE \
+      --input-tsv $WORKING_BASE/itb-review-files/*.tsv \
       $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
       $WORKING_BASE/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
@@ -476,12 +482,12 @@ pvacseq generate_protein_fasta \
 #in somes cases the top candidate may not be the best one (e.g. a different transcript is found to be better during review)
 #generate the unfiltered result so that one can consider alternatives
 pvacseq generate_protein_fasta \
-      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      -p  $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
       -s ${PATIENT_ID}-tumor-exome \
-      $HOME/final_results/annotated.expression.vcf.gz \
+      $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
-      $HOME/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
+      $WORKING_BASE/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
 
 exit
 
