@@ -413,6 +413,7 @@ cd $WORKING_BASE
 
 mkdir final_results
 cd final_results
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/variants.final.annotated.tsv .
 
 mkdir qc
 cd qc
