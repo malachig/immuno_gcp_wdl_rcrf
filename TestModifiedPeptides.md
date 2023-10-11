@@ -265,3 +265,7 @@ gcloud compute instances delete $GCS_VM_NAME
 
 ```
 
+### Final report generation and interpretation
+Use the information in ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv and ${SAMPLE_NAME}.problematic.summary.complete.tsv to produce summary spreadsheets.
+
+
