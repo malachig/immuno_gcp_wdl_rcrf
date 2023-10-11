@@ -198,7 +198,7 @@ To check for successful completion of all jobs you can check the stdout logs tha
 grep "Pipeline finished" */pvacbind_results/*/stdout.txt | wc -l
 ```
 
-### Combine all the pVACbind results into a single file and retrieve this result
+### Combine all the pVACbind results into a single file
 Create a combined TSV file by concatenating all the individual "all_epitopes.tsv" files and avoiding redundant headers. Store this file locally (or in a cloud bucket) so that it can be accessed after the VM is destroyed.
 
 ```bash
@@ -218,24 +218,48 @@ For each candidate modified peptide sequence, summarize the number of such poten
 ```bash
 
 #pull out all the rows that correspond to strong binders according to default criteria (<500nm affinity OR <1 percentile score)
-cut -f 1,2,4,5,8 jlf-100-026.all_epitopes.all_modifications.tsv | perl -ne 'chomp; @l=split("\t",$_); $median_affinity=$l[3]; $median_percentile=$l[4]; if ($median_affinity < 500 || $median_percentile < 1){print "$_\n"}' > jlf-100-026.all_epitopes.all_modifications.problematic.tsv
+cut -f 1,2,4,5,8 ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv | perl -ne 'chomp; @l=split("\t",$_); $median_affinity=$l[3]; $median_percentile=$l[4]; if ($median_affinity < 500 || $median_percentile < 1){print "$_\n"}' > ${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv
 
 #summarize number of problematic results of each unique candidate proposed peptide
-cat jlf-100-026.all_epitopes.all_modifications.problematic.tsv | grep -v Mutation | cut -f 1 | sort | uniq -c | sed 's/^[ ]*//' | tr " " "\t" | awk 'BEGIN {FS="\t"; OFS="\t"} {print $2, $1}' > jlf-100-026.problematic.summary.tsv
+cat ${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv | grep -v "^Mutation" | cut -f 1 | sort | uniq -c | sed 's/^[ ]*//' | tr " " "\t" | awk 'BEGIN {FS="\t"; OFS="\t"} {print $2, $1}' > ${SAMPLE_NAME}.problematic.summary.tsv
 
 #create a list of all unique peptide names for modified peptides to be summarized
-cut -f 1 jlf-100-026.all_epitopes.all_modifications.tsv | sort | uniq > peptide_name_list.tsv
+cut -f 1 ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv | grep -v "^Mutation" | sort | uniq > peptide_name_list.tsv
 
 #create an output table with a count of problematic binders for all peptides (include 0 if that is the case)
-join -t $'\t' -a 1 -a 2 -e'0' -o '0,2.2' peptide_name_list.tsv jlf-100-026.problematic.summary.tsv > jlf-100-026.problematic.summary.complete.tsv
+join -t $'\t' -a 1 -a 2 -e'0' -o '0,2.2' peptide_name_list.tsv ${SAMPLE_NAME}.problematic.summary.tsv > ${SAMPLE_NAME}.problematic.summary.complete.tsv
+
+```
+
+### Retrieve final result files to local system
+
+Files to be kept:
+
+- ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv
+- ${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv
+- ${SAMPLE_NAME}.problematic.summary.complete.tsv
+
+```bash
+#leave the GCP VM
+exit
+
+export SAMPLE_NAME="jlf-100-026"
+
+mkdir ${SAMPLE_NAME}_modified_peptide_results
+cd ${SAMPLE_NAME}_modified_peptide_results
+
+gcloud compute scp --zone us-central1-b $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv
+
+gcloud compute scp --zone us-central1-b $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv
+
+gcloud compute scp --zone us-central1-b $USER@$GCS_VM_NAME:${SAMPLE_NAME}.problematic.summary.complete.tsv ${SAMPLE_NAME}.problematic.summary.complete.tsv
+
 
 ```
 
 ### Once the analysis is done and results retrieved, destroy the Google VM on GCP to avoid wasting resources
 
 ```bash
-
-exit
 
 gcloud compute instances delete $GCS_VM_NAME
 
