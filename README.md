@@ -408,7 +408,7 @@ export CLOUD_YAML=jlf-100-047-bg004733_immuno_cloud-WDL.yaml
 cd $WORKING_BASE
 mkdir yamls
 cd yamls
-aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/${CLOUD_YAML} . 
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/${CLOUD_YAML} . 
 cd $WORKING_BASE
 
 mkdir final_results
