@@ -192,6 +192,20 @@ done
 
 ```
 
+### Combine all the pVACbind results into a single file and retrieve this result
+
+
+### Once the analysis is done and results retrieved, destroy the Google VM on GCP to avoid wasting resources
+
+```bash
+
+exit
+
+gcloud compute instances delete $GCS_VM_NAME
+
+```
+
+
 
 
 
