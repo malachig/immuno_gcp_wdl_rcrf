@@ -451,7 +451,7 @@ mkdir all
 
 mkdir itb-review-files
 gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
-gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.xscl .
+gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.xlsx .
 
 cd final_results
 aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
@@ -512,19 +512,14 @@ gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
 ### Generating the Peptides Order Form
 
 ```bash
-# Files needed for Peptide Order Sheet Coloring
-mkdir pVACseq
-cd pVACSeq
-aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/pVACseq/ . 
-cd $WORKING_BASE
 
 docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
 
-cd $WORKING_BASE/../manual_review
+cd $WORKING_BASE
 
 export SAMPLE="TWJF-10146-0029"
 
-python3 /opt/scripts/setup_review.py -WB $WORKING_BASE -a $WORKING_BASE/ -a ../itb-review-files/*.xlsx -c $WORKING_BASE/../generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -samp $SAMPLE  -classI $WORKING_BASE/final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII $WORKING_BASE/final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv 
+python3 /opt/scripts/setup_review.py -WB $WORKING_BASE/final_results/ -a $WORKING_BASE/itb-review-files/*.xlsx -c $WORKING_BASE/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -samp $SAMPLE  -classI $WORKING_BASE/final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII $WORKING_BASE/final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv 
 
 ```
 
