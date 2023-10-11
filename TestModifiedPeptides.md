@@ -172,7 +172,7 @@ done
 
 ```bash
 docker pull griffithlab/pvactools:4.0.5
-docker run -it -v $HOME/:$HOME/ --env HOME --env SAMPLE_NAME --env HLA_ALLELES griffithlab/pvactools:4.0.5 /bin/bash
+docker run -it -v $HOME/:$HOME/ --user $(id -u):$(id -g) --env HOME --env SAMPLE_NAME --env HLA_ALLELES griffithlab/pvactools:4.0.5 /bin/bash
 cd $HOME
 
 for LENGTH in 8 9 10 11
@@ -188,7 +188,6 @@ do
    export LENGTH_FASTA=$HOME/c-term/pvacbind_inputs/${LENGTH}-mer-test.fa
    export LENGTH_RESULT_DIR=$HOME/c-term/pvacbind_results/${LENGTH}-mer-test
    pvacbind run $LENGTH_FASTA $SAMPLE_NAME $HLA_ALLELES all_class_i $LENGTH_RESULT_DIR -e1 $LENGTH --n-threads 8 --iedb-install-directory /opt/iedb/ 1>$LENGTH_RESULT_DIR/stdout.txt 2>$LENGTH_RESULT_DIR/stderr.txt
-
 done
 
 ```
