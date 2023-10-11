@@ -86,15 +86,67 @@ docker run hello-world
 The following is an example that assumes you have saved your peptides in a tabular format "peptide_table.tsv" with no header and three columns: (a) unique peptide name, (b) peptide sequence, (c) parsable peptide sequence with a "|" separating the wild type sequence from the additional amino acids to improve solubility. This initial file could be created by copy/paste of the proposed peptides from an excel spreadsheet.
 
 ```bash
+#count the number of entries in the input file
 wc -l peptide_table.tsv
 
 #make sure the names are unique
 cut -f 1 peptide_table.tsv | sort | uniq | wc -l
 
+#create a fasta formatted file of all candidates
+cut -f 1,3 peptide_table.tsv | perl -ne 'chomp; @l=split("\t",$_); print ">$l[0]\n$l[1]\n"' > modified_peptides.fa
 
+#create dirs for processing the N-term and C-term sequences separately
+mkdir n-term
+mkdir c-term
+
+#divide the fasta records into two files, one for n-term and one for c-term
+grep --color=never -A 1 "n-term" modified_peptides.fa > n-term/modified_peptides_n-term.fa
+grep --color=never -A 1 "c-term" modified_peptides.fa > c-term/modified_peptides_c-term.fa
+
+#make sure nothing has been lost
+wc -l modified_peptides.fa 
+wc -l n-term/modified_peptides_n-term.fa
+wc -l c-term/modified_peptides_c-term.fa 
 
 ```
 
+### Set up sub-peptide fasta sequences for each target class I prediction length
+The following assumes that:
+
+- 1. proposed modifications are only at the *start* (N-terminus) or *end (C-terminus) of the peptide sequence
+- 2. every peptide in the file has a unique ID on the header line
+- 3. every peptide has a proposed modification
+- 4. the modification is marked with a "|" (proposed modification to left for N-term modified sequences, and to the right for C-term modified sequences)
+
+
+Set some environment variables. Make sure the sample name and HLA alleles are correct for the current case!
+```bash
+export SAMPLE_NAME="jlf-100-026"
+export HLA_ALLELES="HLA-A*02:01,HLA-A*24:02,HLA-B*07:02,HLA-B*35:02,HLA-C*04:01,HLA-C*07:02"
+```
+
+Create the N-terminal fasta files first
+```bash
+export WORKING_DIR=$HOME/n-term
+export INPUTS_DIR=$WORKING_DIR/pvacbind_inputs
+export RESULTS_DIR=$WORKING_DIR/pvacbind_results
+export INFILE=$WORKING_DIR/modified_peptides_n-term.fa
+
+mkdir -p $INPUTS_DIR
+mkdir -p $RESULTS_DIR
+
+for LENGTH in 8 9 10 11
+do
+   #Create input files for each test length so that each test sequence will contain at least one modified base (e.g. 7 AA before modifications for 8-mer test)
+   echo "Creating input fasta to test peptides of length: $LENGTH"
+   export LENGTH_FASTA=$INPUTS_DIR/${LENGTH}-mer-test.fa
+   export LENGTH_RESULT_DIR=$RESULTS_DIR/${LENGTH}-mer-test
+   mkdir -p $LENGTH_RESULT_DIR
+   cat $INFILE | perl -sne 'chomp; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($after, 0, $length-1); print "$before$sub\n"}' -- -length=$LENGTH > $LENGTH_FASTA
+done 
+
+
+```
 
 
 
