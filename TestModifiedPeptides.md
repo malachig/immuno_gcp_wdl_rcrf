@@ -192,13 +192,21 @@ done
 
 ```
 
+To check for successful completion of all jobs you can check the stdout logs that have been saved. There should be 8 successful jobs total, 4 lengths for n-term modified peptides and 4 lengths for c-term.
+
+```bash
+grep "Pipeline finished" */pvacbind_results/*/stdout.txt | wc -l
+```
+
 ### Combine all the pVACbind results into a single file and retrieve this result
 Create a combined TSV file by concatenating all the individual "all_epitopes.tsv" files and avoiding redundant headers. Store this file locally (or in a cloud bucket) so that it can be accessed after the VM is destroyed.
 
-```
+```bash
+#get the header line
+grep -h "^Mutation" --color=never */pvacbind_results/*/MHC_Class_I/${SAMPLE_NAME}.all_epitopes.tsv | sort | uniq > header.tsv
 
-...
-
+#combine the results from all prediction runs and add the header on
+cat */pvacbind_results/*/MHC_Class_I/${SAMPLE_NAME}.all_epitopes.tsv | grep -v "^Mutation" | cat header.tsv - > ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv
 
 ```
 
