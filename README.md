@@ -396,7 +396,7 @@ exit
 ```
 
 ### Gather basic QC for Final report
-Pull the basic data qc from various files. This script will output a file final_results/qc_file.txt and also print the summary to to screen.
+These instructions assume that you have no case data accessible and gives instructions to download just what you need for these scripts to run. Pull the basic data qc from various files. This script will output a file final_results/qc_file.txt and also print the summary to to screen.
 This instructions assume you have none of the the immuno final result files downloaded from AWS.
 
 ```bash
