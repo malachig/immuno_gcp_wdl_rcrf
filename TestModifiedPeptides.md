@@ -45,7 +45,7 @@ sudo apt autoremove -y
 sudo reboot
 
 #wait a few seconds to allow reboot to complete and then login again
-gcloud compute ssh $GCS_INSTANCE_NAME --zone us-central1-b
+gcloud compute ssh $GCS_VM_NAME --zone us-central1-b
 
 ```
 
@@ -70,18 +70,30 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plu
 sudo usermod -a -G docker $USER
 sudo reboot
 
+```
+
+The reboot will will kick you out of the instance. Log in again and test the docker install
+```bash
+gcloud compute ssh $GCS_VM_NAME --zone us-central1-b
+
+# test install
+docker run hello-world
+
 
 ```
 
-
-
-
-
-
-
 ### Create N-term and C-term modified peptide lists for processing
+The following is an example that assumes you have saved your peptides in a tabular format "peptide_table.tsv" with no header and three columns: (a) unique peptide name, (b) peptide sequence, (c) parsable peptide sequence with a "|" separating the wild type sequence from the additional amino acids to improve solubility. This initial file could be created by copy/paste of the proposed peptides from an excel spreadsheet.
+
+```bash
+wc -l peptide_table.tsv
+
+#make sure the names are unique
+cut -f 1 peptide_table.tsv | sort | uniq | wc -l
 
 
+
+```
 
 
 
