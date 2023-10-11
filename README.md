@@ -434,7 +434,16 @@ exit
 After the ITB review is complete, stage the resulting candidates TSV file to the Google VM and use it to generate the long peptide sequence spreadsheet and fasta files that will be needed to complete the peptide order forms.
 
 ```bash
-cd $HOME
+cd $WORKING_BASE
+cd final_results
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz.tbi .
+
+mkdir pVACseq
+cd pVACseq
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/pVACseq .
+
+cd $WORKING_BASE
 mkdir generate_protein_fasta
 cd generate_protein_fasta
 mkdir candidates
@@ -442,22 +451,27 @@ mkdir all
 
 gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
 
+cd final_results
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
+
 #generate a protein fasta file using the final annotated/evaluated neoantigen candidates TSV as input
 #this will filter down to only those candidates under consideration and use the top transcript
 export PATIENT_ID="JLF-100-044"
 export ITB_REVIEW_FILE=${PATIENT_ID}-Reviewed-Annotated.Neoantigen_Candidates.tsv
 
-docker run -it --env HOME --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v /shared/:/shared/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+docker run -it --env WORKING_BASE --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+
+cd $WORKING_BASE/
 
 pvacseq generate_protein_fasta \
-      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      -p $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
       -s ${PATIENT_ID}-tumor-exome \
       --aggregate-report-evaluation {Accept,Review} \
-      --input-tsv $HOME/generate_protein_fasta/$ITB_REVIEW_FILE \
-      $HOME/final_results/annotated.expression.vcf.gz \
+      --input-tsv $WORKING_BASE/generate_protein_fasta/$ITB_REVIEW_FILE \
+      $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
-      $HOME/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
+      $WORKING_BASE/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
 
 #in somes cases the top candidate may not be the best one (e.g. a different transcript is found to be better during review)
 #generate the unfiltered result so that one can consider alternatives
