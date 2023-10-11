@@ -144,9 +144,30 @@ do
    mkdir -p $LENGTH_RESULT_DIR
    cat $INFILE | perl -sne 'chomp; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($after, 0, $length-1); print "$before$sub\n"}' -- -length=$LENGTH > $LENGTH_FASTA
 done 
-
-
 ```
+
+Now create the C-terminal fasta files
+
+```bash
+export WORKING_DIR=$HOME/c-term
+export INPUTS_DIR=$WORKING_DIR/pvacbind_inputs
+export RESULTS_DIR=$WORKING_DIR/pvacbind_results
+export INFILE=$WORKING_DIR/modified_peptides_c-term.fa
+
+mkdir -p $INPUTS_DIR
+mkdir -p $RESULTS_DIR
+
+for LENGTH in 8 9 10 11
+do 
+   #Create input files for each test length so that each test sequence will contain at least one modified base (e.g. 7 AA before modifications for 8-mer test)
+   echo "Creating input fasta to test peptides of length: $LENGTH"
+   export LENGTH_FASTA=$INPUTS_DIR/${LENGTH}-mer-test.fa
+   export LENGTH_RESULT_DIR=$RESULTS_DIR/${LENGTH}-mer-test
+   mkdir -p $LENGTH_RESULT_DIR
+   cat $INFILE | perl -sne 'chomp; $length2=$length-1; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($before, -$length2); print "$sub$after\n"}' -- -length=$LENGTH > $LENGTH_FASTA
+done
+```
+
 
 
 
