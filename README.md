@@ -422,8 +422,8 @@ cd $WORKING_BASE
 
 docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
 
-mkdir ${WORKING_BASE}/${PATIENT_ID}/../manual_review
-cd $WORKING_BASE/${PATIENT_ID}/../manual_review
+mkdir $WORKING_BASE/manual_review
+cd $WORKING_BASE/manual_review
 
 python3 /opt/scripts/get_neoantigen_qc.py -WB $WORKING_BASE -f final_results --yaml $WORKING_BASE/yamls/$CLOUD_YAML
 python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
