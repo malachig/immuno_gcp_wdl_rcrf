@@ -438,23 +438,22 @@ cd $WORKING_BASE
 cd final_results
 aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
 aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz.tbi .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
 
 mkdir pVACseq
 cd pVACseq
 aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/pVACseq .
 
 cd $WORKING_BASE
-mkdir generate_protein_fasta
-cd generate_protein_fasta
-mkdir candidates
-mkdir all
-
 mkdir itb-review-files
 gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
 gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.xlsx .
 
-cd final_results
-aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
+cd $WORKING_BASE
+mkdir generate_protein_fasta
+cd generate_protein_fasta
+mkdir candidates
+mkdir all
 
 #generate a protein fasta file using the final annotated/evaluated neoantigen candidates TSV as input
 #this will filter down to only those candidates under consideration and use the top transcript
@@ -463,8 +462,6 @@ aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workf
 gzcat annotated.expression.vcf.gz | less
 export PATIENT_ID="100-049-BG004667"
 
-export ITB_REVIEW_FILE=${PATIENT_ID}-Reviewed-Annotated.Neoantigen_Candidates.tsv
-
 docker run -it --env WORKING_BASE --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
 
 cd $WORKING_BASE/
@@ -472,7 +469,7 @@ cd $WORKING_BASE/
 pvacseq generate_protein_fasta \
       -p $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
-      -s ${PATIENT_ID}-tumor-exome \
+      -s ${PATIENT_ID} \
       --aggregate-report-evaluation {Accept,Review} \
       --input-tsv $WORKING_BASE/itb-review-files/*.tsv \
       $WORKING_BASE/final_results/annotated.expression.vcf.gz \
@@ -484,7 +481,7 @@ pvacseq generate_protein_fasta \
 pvacseq generate_protein_fasta \
       -p  $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
-      -s ${PATIENT_ID}-tumor-exome \
+      -s ${PATIENT_ID} \
       $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
       $WORKING_BASE/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
