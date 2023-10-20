@@ -400,7 +400,7 @@ These instructions assume that you have no case data accessible and gives instru
 This instructions assume you have none of the the immuno final result files downloaded from AWS.
 
 ```bash
-export WORKING_BASE=/Users/evelynschmidt/jlf/JLF-100-047
+export WORKING_BASE=/Users/evelynschmidt/jlf/JLF-100-047/gcp_immuno
 export PATIENT_ID=JLF-100-047
 export GCS_CASE_NAME=jlf-100-047-bg004733
 export CLOUD_YAML=jlf-100-047-bg004733_immuno_cloud-WDL.yaml
@@ -422,8 +422,8 @@ cd $WORKING_BASE
 
 docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
 
-mkdir $WORKING_BASE/manual_review
-cd $WORKING_BASE/manual_review
+mkdir $WORKING_BASE/../manual_review
+cd $WORKING_BASE/../manual_review
 
 python3 /opt/scripts/get_neoantigen_qc.py -WB $WORKING_BASE -f final_results --yaml $WORKING_BASE/yamls/$CLOUD_YAML
 python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
