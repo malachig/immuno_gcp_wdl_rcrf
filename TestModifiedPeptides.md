@@ -40,15 +40,13 @@ project = jlf-rcrf
 ```
 
 ### Launching a Google VM to perform the predictions
-Launch GCP instance that has the same base image as used by Cromwell / Google Life Sciences
+Launch GCP instance set up for ad hoc analyses (including docker)
 
 ```bash
-gcloud compute instances create $GCS_VM_NAME --project $GCS_PROJECT \
-       --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com --scopes=cloud-platform \
-       --image-family ubuntu-2204-lts --image-project ubuntu-os-cloud \
-       --network=cloud-workflows --subnet=cloud-workflows-default \
+gcloud compute instances create $GCS_VM_NAME \ 
+       --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com \ 
+       --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default \
        --boot-disk-size=250GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
-
 ```
 
 ### Log into the GCP instance and check status
@@ -62,47 +60,23 @@ journalctl -u google-startup-scripts -f
 #check for expected disk space
 df -h 
 
-#OPTIONAL - do some basic security updates (hit enter if prompted with any questions)
-sudo apt update
-sudo apt full-upgrade -y
-sudo apt autoremove -y
-sudo reboot
-
-#wait a few seconds to allow reboot to complete and then login again
-gcloud compute ssh $GCS_VM_NAME 
-
 ```
 
-### Install Docker engine on the Google VM
-If you know your analysis will not require running tasks within Docker, you can skip this step. However, the following just take a few minutes and will allow your user to run tools that are available as Docker images.
+### Configure Docker to work for current user
 
 ```bash
-# set up repository
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg lsb-release
-sudo mkdir -p /etc/apt/keyrings
-
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# install docker engine
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-#add user
 sudo usermod -a -G docker $USER
 sudo reboot
 
 ```
 
-The reboot will will kick you out of the instance. Log in again and test the docker install
+Logout and login to get this change to take effect and test the docker install
 ```bash
+exit
+
 gcloud compute ssh $GCS_VM_NAME 
 
-# test install
 docker run hello-world
-
 
 ```
 
