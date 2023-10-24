@@ -11,14 +11,21 @@ Set up Google cloud configurations and make sure the right one is activated:
 export GCS_PROJECT=jlf-rcrf
 export GCS_VM_NAME=mg-test-peptide-mods 
 
-gcloud config configurations list #list possible configs that are set up
-gcloud config configurations activate rcrf #activate the rcrf config
-gcloud auth login #login if needed (only needs to be done once) 
-gcloud config list #view active config/login
+#list possible configs that are set up
+gcloud config configurations list
+
+#activate the rcrf config
+gcloud config configurations activate rcrf
+
+#login if needed (only needs to be done once)
+gcloud auth login 
+
+#view active config/login (should show the correct project "jlf-rcrf", zone, and email address)
+gcloud config list
 
 ```
 
-Configure these configurations to use a specific zone. Once the config is setup and you have logged into at least once the config files should look like this::
+Configure these configurations to use a specific zone. Once the config is setup and you have logged into at least once the config files should look like this:
 
 `cat ~/.config/gcloud/configurations/config_rcrf`
 
@@ -27,7 +34,7 @@ Configure these configurations to use a specific zone. Once the config is setup 
 region = us-central1
 zone = us-central1-c
 [core]
-account = malachig@gmail.com
+account = <email address associated with rcrf account>
 disable_usage_reporting = True
 project = jlf-rcrf
 ```
