@@ -6,13 +6,30 @@ Starting with a list of peptides and proposed amino acid modifications on the N-
 ### Local dependencies
 The following assumes you have gcloud installed and have authenticated to use the google cloud project below
 
+Set up Google cloud configurations and make sure the right one is activated:
 ```bash 
 export GCS_PROJECT=jlf-rcrf
 export GCS_VM_NAME=mg-test-peptide-mods 
 
-gcloud auth login
-gcloud config set project $GCS_PROJECT
-gcloud config list
+gcloud config configurations list #list possible configs that are set up
+gcloud config configurations activate rcrf #activate the rcrf config
+gcloud auth login #login if needed (only needs to be done once) 
+gcloud config list #view active config/login
+
+```
+
+Configure these configurations to use a specific zone. Once the config is setup and you have logged into at least once the config files should look like this::
+
+`cat ~/.config/gcloud/configurations/config_rcrf`
+
+```
+[compute]
+region = us-central1
+zone = us-central1-c
+[core]
+account = malachig@gmail.com
+disable_usage_reporting = True
+project = jlf-rcrf
 ```
 
 ### Launching a Google VM to perform the predictions
@@ -22,7 +39,7 @@ Launch GCP instance that has the same base image as used by Cromwell / Google Li
 gcloud compute instances create $GCS_VM_NAME --project $GCS_PROJECT \
        --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com --scopes=cloud-platform \
        --image-family ubuntu-2204-lts --image-project ubuntu-os-cloud \
-       --zone us-central1-b  --network=cloud-workflows --subnet=cloud-workflows-default \
+       --network=cloud-workflows --subnet=cloud-workflows-default \
        --boot-disk-size=250GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
 
 ```
@@ -30,7 +47,7 @@ gcloud compute instances create $GCS_VM_NAME --project $GCS_PROJECT \
 ### Log into the GCP instance and check status
 
 ```bash
-gcloud compute ssh $GCS_VM_NAME --zone us-central1-b
+gcloud compute ssh $GCS_VM_NAME 
 
 #confirm start up scripts have completed. use <ctrl> <c> to exit
 journalctl -u google-startup-scripts -f
@@ -45,7 +62,7 @@ sudo apt autoremove -y
 sudo reboot
 
 #wait a few seconds to allow reboot to complete and then login again
-gcloud compute ssh $GCS_VM_NAME --zone us-central1-b
+gcloud compute ssh $GCS_VM_NAME 
 
 ```
 
@@ -74,7 +91,7 @@ sudo reboot
 
 The reboot will will kick you out of the instance. Log in again and test the docker install
 ```bash
-gcloud compute ssh $GCS_VM_NAME --zone us-central1-b
+gcloud compute ssh $GCS_VM_NAME 
 
 # test install
 docker run hello-world
@@ -271,11 +288,11 @@ export SAMPLE_NAME="jlf-100-026"
 mkdir ${SAMPLE_NAME}_modified_peptide_results
 cd ${SAMPLE_NAME}_modified_peptide_results
 
-gcloud compute scp --zone us-central1-b $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv
+gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv
 
-gcloud compute scp --zone us-central1-b $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv
+gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv
 
-gcloud compute scp --zone us-central1-b $USER@$GCS_VM_NAME:${SAMPLE_NAME}.problematic.summary.complete.tsv ${SAMPLE_NAME}.problematic.summary.complete.tsv
+gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.problematic.summary.complete.tsv ${SAMPLE_NAME}.problematic.summary.complete.tsv
 
 
 ```
