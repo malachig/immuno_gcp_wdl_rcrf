@@ -131,6 +131,8 @@ wc -l c-term/modified_peptides_c-term.fa
 
 ```
 
+At this point you should stop and check that these input files appear correct. For example, each sequence should start/end with an expected solubility modification, and it should be at the end expected based on whether it is a n-term (start) or c-term (end) modification.
+
 ### Set up sub-peptide fasta sequences for each target class I prediction length
 The following assumes that:
 
@@ -188,6 +190,20 @@ do
    cat $INFILE | perl -sne 'chomp; $length2=$length-1; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($before, -$length2); print "$sub$after\n"}' -- -length=$LENGTH > $LENGTH_FASTA
 done
 ```
+
+At this point you should stop and examine the individual peptide sequences designed to be fed into pVACbind for each length run. Note that for each length N (e.g. `-e1 8`) the corresponding fasta sequences will be N+1 or greater in length such that it is not possible to extract a substring of that length without including at least one modified amino acid.  pVACbind will extract all sub-strings of the specified length (e.g. 8 for `-e1 8`). 
+
+For example, if the modification was an N-term-RRR modification to QPSTLVQRPTSLF. The 8-mer fasta file would include 7 amino acids and all three R's:
+
+RRRQPSTLVQ 
+
+pVACbind would then iterate through this sequence and test the following 8-mer sequences:
+
+RRRQPSTL
+RRQPSTLV
+RQPSTLVQ
+
+Note that all sequences are of the target length being test by pVACbind (8) and all tested sequences contain at least one modified amino acid. 
 
 ### Enter a pVACtools docker environment to run pVACbind on the sub-peptide sequences containing modified AAs
 
