@@ -203,7 +203,8 @@ RRRQPSTL
 RRQPSTLV
 RQPSTLVQ
 
-Note that all sequences are of the target length being test by pVACbind (8) and all tested sequences contain at least one modified amino acid. 
+Note that all sequences are of the target length being test by pVACbind (8) and all tested sequences contain at least one modified amino acid. This approach makes the interpretation easy.  Any strong binding peptide that comes out of this analysis is something we want to avoid.
+
 
 ### Enter a pVACtools docker environment to run pVACbind on the sub-peptide sequences containing modified AAs
 
