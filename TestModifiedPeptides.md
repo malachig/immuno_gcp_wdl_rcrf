@@ -163,7 +163,7 @@ do
    export LENGTH_FASTA=$INPUTS_DIR/${LENGTH}-mer-test.fa
    export LENGTH_RESULT_DIR=$RESULTS_DIR/${LENGTH}-mer-test
    mkdir -p $LENGTH_RESULT_DIR
-   cat $INFILE | perl -sne 'chomp; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($after, 0, $length-1); print "$before$sub\n"}' -- -length=$LENGTH > $LENGTH_FASTA
+   cat $INFILE | perl -sne 'chomp; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($after, 0, $length-length($before)); print "$before$sub\n"}' -- -length=$LENGTH > $LENGTH_FASTA
 done 
 ```
 
@@ -185,7 +185,7 @@ do
    export LENGTH_FASTA=$INPUTS_DIR/${LENGTH}-mer-test.fa
    export LENGTH_RESULT_DIR=$RESULTS_DIR/${LENGTH}-mer-test
    mkdir -p $LENGTH_RESULT_DIR
-   cat $INFILE | perl -sne 'chomp; $length2=$length-1; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($before, -$length2); print "$sub$after\n"}' -- -length=$LENGTH > $LENGTH_FASTA
+   cat $INFILE | perl -sne 'chomp; if($_ =~/^\>/){print "$_\n"}elsif($_ =~ /(\w+)\|(\w+)/){$before=$1; $after=$2; $sub=substr($before, -($length-length($2))); print "$sub$after\n"}' -- -length=$LENGTH > $LENGTH_FASTA
 done
 ```
 
