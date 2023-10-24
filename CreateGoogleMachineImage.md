@@ -131,9 +131,10 @@ gcloud compute instances delete $GCS_VM_NAME
 
 
 ```bash
-gcloud compute instances create jlf-adhoc-image-test --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com \ 
-       --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default --boot-disk-size=250GB \
-       --boot-disk-type=pd-ssd --machine-type=e2-standard-8
+gcloud compute instances create jlf-adhoc-image-test \ 
+       --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com \ 
+       --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default \
+       --boot-disk-size=250GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
 
 gcloud compute ssh jlf-adhoc-image-test
 
