@@ -395,46 +395,96 @@ exit
 
 ```
 
+### Gather basic QC for Final report
+These instructions assume that you have no case data accessible and gives instructions to download just what you need for these scripts to run. Pull the basic data qc from various files. This script will output a file final_results/qc_file.txt and also print the summary to to screen.
+This instructions assume you have none of the the immuno final result files downloaded from AWS.
 
+```bash
+export WORKING_BASE=/Users/evelynschmidt/jlf/JLF-100-047/gcp_immuno
+export PATIENT_ID=JLF-100-047
+export GCS_CASE_NAME=jlf-100-047-bg004733
+export CLOUD_YAML=jlf-100-047-bg004733_immuno_cloud-WDL.yaml
+
+cd $WORKING_BASE
+mkdir yamls
+cd yamls
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/${CLOUD_YAML} . 
+cd $WORKING_BASE
+
+mkdir final_results
+cd final_results
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/variants.final.annotated.tsv .
+
+mkdir qc
+cd qc
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/qc/ . 
+cd $WORKING_BASE
+
+docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
+
+mkdir $WORKING_BASE/../manual_review
+cd $WORKING_BASE/../manual_review
+
+python3 /opt/scripts/get_neoantigen_qc.py -WB $WORKING_BASE -f final_results --yaml $WORKING_BASE/yamls/$CLOUD_YAML
+python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
+exit
+```
 ### Run the generate protein fasta step after ITB review is complete
 
 After the ITB review is complete, stage the resulting candidates TSV file to the Google VM and use it to generate the long peptide sequence spreadsheet and fasta files that will be needed to complete the peptide order forms.
 
 ```bash
-cd $HOME
+cd $WORKING_BASE
+cd final_results
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz.tbi .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
+
+mkdir pVACseq
+cd pVACseq
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/pVACseq .
+
+cd $WORKING_BASE
+mkdir itb-review-files
+gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
+gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.xlsx .
+
+cd $WORKING_BASE
 mkdir generate_protein_fasta
 cd generate_protein_fasta
 mkdir candidates
 mkdir all
 
-gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
-
 #generate a protein fasta file using the final annotated/evaluated neoantigen candidates TSV as input
 #this will filter down to only those candidates under consideration and use the top transcript
-export PATIENT_ID="JLF-100-044"
-export ITB_REVIEW_FILE=${PATIENT_ID}-Reviewed-Annotated.Neoantigen_Candidates.tsv
 
-docker run -it --env HOME --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v /shared/:/shared/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+# check the file to find sample ID in the #CHROM header of VCF
+gzcat annotated.expression.vcf.gz | less
+export PATIENT_ID="100-049-BG004667"
+
+docker run -it --env WORKING_BASE --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+
+cd $WORKING_BASE/
 
 pvacseq generate_protein_fasta \
-      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      -p $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
-      -s ${PATIENT_ID}-tumor-exome \
+      -s ${PATIENT_ID} \
       --aggregate-report-evaluation {Accept,Review} \
-      --input-tsv $HOME/generate_protein_fasta/$ITB_REVIEW_FILE \
-      $HOME/final_results/annotated.expression.vcf.gz \
+      --input-tsv $WORKING_BASE/itb-review-files/*.tsv \
+      $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
-      $HOME/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
+      $WORKING_BASE/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
 
 #in somes cases the top candidate may not be the best one (e.g. a different transcript is found to be better during review)
 #generate the unfiltered result so that one can consider alternatives
 pvacseq generate_protein_fasta \
-      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      -p  $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
-      -s ${PATIENT_ID}-tumor-exome \
-      $HOME/final_results/annotated.expression.vcf.gz \
+      -s ${PATIENT_ID} \
+      $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
-      $HOME/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
+      $WORKING_BASE/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
 
 exit
 
@@ -455,6 +505,22 @@ cd $WORKING_BASE
 gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
 
 ```
+
+### Generating the Peptides Order Form
+
+```bash
+
+docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
+
+cd $WORKING_BASE
+
+export SAMPLE="TWJF-10146-0029"
+
+python3 /opt/scripts/setup_review.py -WB $WORKING_BASE/ -a $WORKING_BASE/../itb-review-files/*.xlsx -c $WORKING_BASE/../generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -samp $SAMPLE  -classI $WORKING_BASE/final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII $WORKING_BASE/final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv 
+
+```
+
+Open colored_peptides51mer.html and copy the table into an excel spreadsheet. The formatting should remain. Utilizing the Annotated.Neoantigen_Candidates and colored Peptides_51-mer for manual review.
 
 
 ### Once the workflow is done and results retrieved, destroy the Cromwell VM on GCP to avoid wasting resources
