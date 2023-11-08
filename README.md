@@ -458,8 +458,9 @@ mkdir all
 #generate a protein fasta file using the final annotated/evaluated neoantigen candidates TSV as input
 #this will filter down to only those candidates under consideration and use the top transcript
 
-# check the file to find sample ID in the #CHROM header of VCF
-gzcat annotated.expression.vcf.gz | less
+# check the file to find Tumor sample ID in the #CHROM header of VCF
+
+gzcat $WORKING_BASE/final_results/annotated.expression.vcf.gz | less
 export PATIENT_ID="100-049-BG004667"
 
 docker run -it --env WORKING_BASE --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
