@@ -90,8 +90,7 @@ The following inputs should be obtained prior to proceeding:
 - Reference genome
 
 ```bash
-mkdir ~/refs
-cd ~/refs
+mkdir -p ~/refs && cd ~/refs
 
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/rna_seq_annotation/Homo_sapiens.GRCh38.pep.all.fa.gz .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/reference_genome/chromAlias.ensembl.txt .
@@ -100,7 +99,7 @@ gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/vep_cache.zip .
 mkdir vep_cache
 mv vep_cache.zip vep_cache && cd vep_cache
-sudo apt install unzip
+sudo apt install unzip -y
 unzip vep_cache.zip
 ```
 
@@ -108,18 +107,39 @@ unzip vep_cache.zip
 
 - HLA Alleles for current case
 - Phased VCF
-- Tumor DNA BAM/CRAM (and index BAI)
 - Normal DNA BAM/CRAM (and index BAI)
+- Tumor DNA BAM/CRAM (and index BAI)
 - Tumor RNA BAM (and index BAI)
 - Gene expression file (e.g. from Kallisto)
 - Transcript expression file (e.g. from Kallisto)
 
 Example commands to obtain each of these inputs
 ```bash
-...
+mkdir -p ~/inputs && cd ~/inputs
+
+#install aws
+sudo apt install awscli -y
+
+#configure/authenticate aws connection to allow retrieval of input files from an s3 bucket (us-east-1)
+#you will needed valid access keys for the following steps
+aws configure --profile jlf
+aws s3 --profile jlf ls s3://rcrf-h37-data/JLF/JLF-100-054/
+
+#download each of the neccessary input files enumerated above from an immuno.wdl pipeline run for this tumor
+#THESE PATHS WILL BE SPECIFIC TO EACH TUMOR
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/hla_typing/hla_calls.txt .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/pVACseq/phase_vcf/phased.vcf.gz .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/pVACseq/phase_vcf/phased.vcf.gz.tbi .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/normal.cram .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/normal.cram.crai .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/tumor.cram .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/tumor.cram.crai .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/rnaseq/alignments/MarkedSorted.bam .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/rnaseq/alignments/MarkedSorted.bam.bai .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/rnaseq/kallisto_expression/gene_abundance.tsv .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/rnaseq/kallisto_expression/abundance.tsv .
 
 ```
-
 
 ### Step 3. Use the [ClinGen Allele Registry](https://reg.clinicalgenome.org/redmine/projects/registry/genboree_registry/landing) to resolve variants to HGVS
 
