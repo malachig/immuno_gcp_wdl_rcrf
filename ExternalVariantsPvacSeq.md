@@ -94,6 +94,7 @@ mkdir -p ~/refs && cd ~/refs
 
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/rna_seq_annotation/Homo_sapiens.GRCh38.pep.all.fa.gz .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/reference_genome/chromAlias.ensembl.txt .
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/reference_genome/all_sequences.dict .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/bwamem2_2.2.1/all_sequences.fa .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/bwamem2_2.2.1/all_sequences.fa.fai .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/vep_cache.zip .
@@ -112,6 +113,7 @@ unzip vep_cache.zip
 - Tumor RNA BAM (and index BAI)
 - Gene expression file (e.g. from Kallisto)
 - Transcript expression file (e.g. from Kallisto)
+- The final somatic VCF (as a reference point)
 
 Example commands to obtain each of these inputs
 ```bash
@@ -138,6 +140,8 @@ aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci
 aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/rnaseq/alignments/MarkedSorted.bam.bai .
 aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/rnaseq/kallisto_expression/gene_abundance.tsv .
 aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/rnaseq/kallisto_expression/abundance.tsv .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/annotated.expression.vcf.gz .
+aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci_data/final_results/annotated.expression.vcf.gz.tbi .
 
 ```
 
@@ -193,50 +197,103 @@ NC_000008.11:g.134601486C>T
 
 docker: "mgibio/vep_helper-cwl:vep_105.0_v1"
 
-`isub -m 64 -n 8 --preserve false -i 'mgibio/vep_helper-cwl:vep_105.0_v1'`
-
 Using the docker image above, annotate the variant with Ensembl VEP as follows
 
 ```
+cd $HOME
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) mgibio/vep_helper-cwl:vep_105.0_v1 /bin/bash
+
+cd $HOME
 /usr/bin/perl -I /opt/lib/perl/VEP/Plugins /usr/bin/variant_effect_predictor.pl \
---format hgvs \
---vcf \
---fork 4 \
---term SO \
---transcript_version \
---cache \
---symbol \
--o annotated.vcf \
--i /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/erbb3-variant-hgvs.txt \
---synonyms /storage1/fs1/mgriffit/Active/griffithlab/pipeline_test/malachi/refs_backup/May-2023/griffith-lab-workflow-inputs/human_GRCh38_ens105/reference_genome/chromAlias.ensembl.txt \
---flag_pick \
---dir /storage1/fs1/mgriffit/Active/griffithlab/pipeline_test/malachi/refs_backup/May-2023/griffith-lab-workflow-inputs/human_GRCh38_ens105/vep_cache \
---fasta /storage1/fs1/mgriffit/Active/griffithlab/pipeline_test/malachi/refs_backup/May-2023/griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/bwamem2_2.2.1/all_sequences.fa \
---check_existing \
---plugin Frameshift --plugin Wildtype  \
---everything \
---assembly GRCh38 \
---cache_version 105 \
---species homo_sapiens
+--format hgvs --vcf --fork 4 --term SO --transcript_version --cache --symbol \
+-o $HOME/external-variants-hgvs.vcf -i $HOME/external-variants-hgvs.txt --synonyms $HOME/refs/chromAlias.ensembl.txt \
+--flag_pick --dir $HOME/refs/vep_cache --fasta $HOME/refs/all_sequences.fa --check_existing \
+--plugin Frameshift --plugin Wildtype --everything --assembly GRCh38 --cache_version 105 --species homo_sapiens
+
+exit
+
+less -S external-variants-hgvs.vcf
+
 ```
+
+Fix the chr names in the VCF so that they will match the names used in our alignments when need to add counts data
+
+```bash
+
+cat ~/external-variants-hgvs.vcf | perl -ne 'if ($_ =~ /^#/){print $_}else{print "chr$_"}' > ~/external-variants-hgvs.fixed-chrs.vcf
+
+```
+
+
 
 ### Step 5. Add tumor/normal genotype information to the VCF
 
-`isub -m 64 -n 8 --preserve false -i 'griffithlab/vatools:latest'`
+docker: "griffithlab/vatools:latest"
+
+Figure the appropriate tumor and normal sample names to use by examining the somatic VCF that was produced by the immuno.wdl pipeline
+
+```bash
+cd ~/inputs
+zgrep "^#" annotated.expression.vcf.gz | grep -v "^##"
+export NORMAL_NAME=$(zgrep "^#" annotated.expression.vcf.gz | grep -v "^##" | cut -f 10)
+export TUMOR_NAME=$(zgrep "^#" annotated.expression.vcf.gz | grep -v "^##" | cut -f 11)
+```
 
 Using the docker image above, use VA tools to add genotype columns to the VCF
 
+```bash
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
+
+echo $NORMAL_NAME
+echo $TUMOR_NAME
+
+cd ~
+vcf-genotype-annotator $HOME/external-variants-hgvs.fixed-chrs.vcf $NORMAL_NAME 0/0 -o $HOME/external-variants-hgvs.genotyped.1.vcf
+vcf-genotype-annotator $HOME/external-variants-hgvs.genotyped.1.vcf $TUMOR_NAME 0/1 -o $HOME/external-variants-hgvs.genotyped.2.vcf
+
+exit
+
+less -S ~/external-variants-hgvs.genotyped.2.vcf
+
+zgrep "^#" ~/inputs/annotated.expression.vcf.gz | grep -v "^##"
+grep "^#" ~/external-variants-hgvs.genotyped.2.vcf | grep -v "^##"
+
 ```
-vcf-genotype-annotator /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.vcf JLF-100-016-tumor 0/1 -o /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.genotyped.1.vcf
 
-vcf-genotype-annotator /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.genotyped.1.vcf JLF-100-016-normal 0/0 -o /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.genotyped.2.vcf
+### Step 6. Create a sorted, compressed, indexed version of the VCF
+
+Sort the VCF
+docker: "broadinstitute/picard:2.23.6"
+
+```bash
+
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) broadinstitute/picard:2.23.6 /bin/bash
+
+/usr/bin/java -Xmx8g -jar /usr/picard/picard.jar SortVcf O=$HOME/external-variants-hgvs.genotyped.2.sort.vcf I=$HOME/external-variants-hgvs.genotyped.2.vcf SEQUENCE_DICTIONARY=$HOME/refs/all_sequences.dict
+
 ```
 
-### Step 6. Adding DNA and RNA count/VAF data to the VCF
 
-Work in progress. 
+
+### Step 7. Adding DNA and RNA count/VAF data to the VCF
+
+docker: "mgibio/bam_readcount_helper-cwl:1.1.1"
+
+The following assumes the VCF does not contain multi-allelic sites. If it does refer to the following docs.
 
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/readcounts.html
+
+Perform read counting and add count/VAF information from all three BAM files to the VCF
+
+```bash
+mkdir -p ~/readcounts && cd ~/readcounts
+
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) mgibio/bam_readcount_helper-cwl:1.1.1 /bin/bash
+
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.vcf normal_dna $HOME/refs/all_sequences.fa $HOME/inputs/normal.cram $HOME/readcounts
+
+
+```
 
 
 ### Step 7.
