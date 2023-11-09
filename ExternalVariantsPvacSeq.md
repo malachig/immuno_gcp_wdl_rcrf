@@ -98,7 +98,10 @@ gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/reference_genome
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/bwamem2_2.2.1/all_sequences.fa .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/bwamem2_2.2.1/all_sequences.fa.fai .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/vep_cache.zip .
-
+mkdir vep_cache
+mv vep_cache.zip vep_cache && cd vep_cache
+sudo apt install unzip
+unzip vep_cache.zip
 ```
 
 #### Input data files (from a completed immuno.wdl run for the current tumor)
