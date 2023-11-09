@@ -145,6 +145,15 @@ aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci
 
 ```
 
+Create BAM file versions of the CRAMs (needed for bam readcount step)
+
+```bash
+
+TODO
+
+```
+
+
 ### Step 3. Use the [ClinGen Allele Registry](https://reg.clinicalgenome.org/redmine/projects/registry/genboree_registry/landing) to resolve variants to HGVS
 
 This step depends a bit on the starting format of the variant obtained externally.  The goal is to resolve them to a list of genomic HGVS expressions. Starting formats vary considerably. Description of even the common possibilities here are beyond this scope of this document.
