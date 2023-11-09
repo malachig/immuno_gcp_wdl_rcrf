@@ -51,7 +51,7 @@ Launch a VM based on ubuntu but with additional dependencies installed
 gcloud beta compute machine-images list
 
 #launch a VM based on one of these images and provision appropriate resources (machine type and disk)
-gcloud compute instances create $GCS_VM_NAME \ 
+gcloud compute instances create $GCS_VM_NAME \
        --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com \
        --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default \
        --boot-disk-size=500GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
