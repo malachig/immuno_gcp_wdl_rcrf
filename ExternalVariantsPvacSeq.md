@@ -64,6 +64,16 @@ gcloud compute ssh $GCS_VM_NAME
 
 ```
 
+Make sure you can run Docker sessions:
+
+```bash
+docker run hello-world
+
+#if that doesn't work you may have to give your user permission to run docker first
+#do the following and then log out and in, or reboot
+sudo usermod -a -G docker $USER
+
+```
 
 #### Step 2. Gather inputs
 
