@@ -19,11 +19,14 @@ export GCS_VM_NAME=mg-ext-vars-pvacseq
 #list possible configs that are set up
 gcloud config configurations list
 
-#activate the rcrf config
+#activate the rcrf config if it isnt already
 gcloud config configurations activate rcrf
 
 #login if needed (only needs to be done once)
 gcloud auth login 
+
+#set the project if needed (only needs to be done once)
+gcloud config set project $GCS_PROJECT
 
 #view active config/login (should show the correct project "jlf-rcrf", zone, and email address)
 gcloud config list
