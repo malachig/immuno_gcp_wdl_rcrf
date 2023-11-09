@@ -14,7 +14,7 @@ Set up Google cloud configurations and make sure the right one is activated:
 
 ```bash
 export GCS_PROJECT=jlf-rcrf
-export GCS_VM_NAME=external-variants-pvacseq
+export GCS_VM_NAME=mg-ext-vars-pvacseq
 
 #list possible configs that are set up
 gcloud config configurations list
@@ -57,7 +57,7 @@ gcloud compute instances create $GCS_VM_NAME \
        --boot-disk-size=500GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
 
 #log into that instance
-gcloud compute ssh jlf-adhoc-image-test
+gcloud compute ssh $GCS_VM_NAME
 
 ```
 
