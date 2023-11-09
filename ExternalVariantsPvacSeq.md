@@ -222,9 +222,9 @@ Fix the chr names in the VCF so that they will match the names used in our align
 
 cat ~/external-variants-hgvs.vcf | perl -ne 'if ($_ =~ /^#/){print $_}else{print "chr$_"}' > ~/external-variants-hgvs.fixed-chrs.vcf
 
+less -S ~/external-variants-hgvs.fixed-chrs.vcf
+
 ```
-
-
 
 ### Step 5. Add tumor/normal genotype information to the VCF
 
@@ -271,7 +271,22 @@ docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc
 
 /usr/bin/java -Xmx8g -jar /usr/picard/picard.jar SortVcf O=$HOME/external-variants-hgvs.genotyped.2.sort.vcf I=$HOME/external-variants-hgvs.genotyped.2.vcf SEQUENCE_DICTIONARY=$HOME/refs/all_sequences.dict
 
+exit
 ```
+
+Compress and Tabix index the VCF
+docker: "quay.io/biocontainers/samtools:1.11--h6270b1f_0"
+
+```bash
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
+
+/usr/local/bin/bgzip -c $HOME/external-variants-hgvs.genotyped.2.sort.vcf > $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz
+
+/usr/local/bin/tabix -p vcf $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz
+
+exit
+```
+
 
 
 
