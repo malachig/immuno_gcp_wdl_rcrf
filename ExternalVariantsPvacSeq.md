@@ -56,7 +56,10 @@ gcloud compute instances create $GCS_VM_NAME \
        --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default \
        --boot-disk-size=500GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
 
-#log into that instance
+#view currently running instances
+gcloud compute instances list 
+
+#log into the new instance
 gcloud compute ssh $GCS_VM_NAME
 
 ```
