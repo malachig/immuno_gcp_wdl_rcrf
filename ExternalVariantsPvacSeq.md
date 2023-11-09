@@ -117,16 +117,51 @@ Example commands to obtain each of these inputs
 
 ### Step 3. Use the [ClinGen Allele Registry](https://reg.clinicalgenome.org/redmine/projects/registry/genboree_registry/landing) to resolve variants to HGVS
 
-This step depends a bit on the starting format of the variant obtained externally.  The goal is to resolve them to a list of genomic HGVS expressions. Starting formats might look like:
+This step depends a bit on the starting format of the variant obtained externally.  The goal is to resolve them to a list of genomic HGVS expressions. Starting formats vary considerably. Description of even the common possibilities here are beyond this scope of this document.
 
-e.g. ERBB3 p.S846I
+Example variant info:
 
-This works out to:
+chr7-87193899-87193903-GCAGA-G (DMTF1|p.D610fs)
+chr5-154802261-154802262-AG-A (LARP1|p.D583fs)
+chr1-228279865-228279866-G-A (OBSCN|p.R2481H)
+chr8-134601485-134601486-C-T (ZFAT|p.E745K)
 
-NC_000012.12:g.56097861G>T / NM_001982.4:c.2537G>T / NP_001973.2:p.Ser846Ile
-NC_000012.12:g.56097861G>T / ENST00000267101.8:c.2537G>T / ENSP00000267101.4:p.Ser846Ile 
+Whatever the starting format the goal is to convert these to genomic (g.) HGVS entries and to doublecheck that the protein change there agrees with expectations from the external provider of the variants.
 
-Create a simple text file: external-variants-hgvs.txt with a single HGVS g. entry: `NC_000012.12:g.56097861G>T` on each line
+Use IGV, ClinGen Allele Registry and associated tools to either manually contruct and check the HGVS or resolve it from the predicted protein change.
+
+For these four examples, covering both simple SNV and indels, this works out to:
+
+**chr7-87193899-87193903-GCAGA-G (DMTF1|p.D610fs)**
+- Manual HGVS: chr7 = NC_000007.14 -> NC_000007.14:g.87193900_87193903delCAGA (coordinates provided were left justified following VCF spec)
+- ClinGen HGVS result (CA843372381): *NC_000007.14:g.87193902_87193905del* / ENST00000331242.12:c.1828_1831del | ENSP00000332171.7:p.Asp610LeufsTer11
+- Asp610LeufsTer11 -> D610LfsTer11 -> D610fs (matches expected annotation)
+
+**chr5-154802261-154802262-AG-A (LARP1|p.D583fs)**
+- Manual HGVS: chr5 = NC_000005.10 -> NC_000005.10:g.154802262delG (coordinates provided were left justified folowing VCF spec)
+- ClinGen HGVS result (CA447422638): *NC_000005.10:g.154802268del* / ENST00000336314.9:c.1747del / ENSP00000336721.4:p.Asp583ThrfsTer12
+- Asp583ThrfsTer12 -> D583TfsTer12 -> D583fs (matches expected annotation)
+- Note that in this case a transcript other than the MANE select had to be chosen to match the expected annotation of D583fs
+
+**chr1-228279865-228279866-G-A (OBSCN|p.R2481H)**
+- Manual HGVS: chr1 = NC_000001.11 -> NC_000001.11:g.228279866G>A
+- ClinGen HGVS result (CA1434153): *NC_000001.11:g.228279866G>A* / ENST00000284548.16:c.7442G>A / ENSP00000284548.11:p.Arg2481His
+- Arg2481His -> R2481H (matches expected annotation)
+- Note that in this case a transcript other than the MANE select had to be chosen to match the expected annotation of D583fs
+
+**chr8-134601485-134601486-C-T (ZFAT|p.E745K)**
+- Manual HGVS: chr8 = NC_000008.11 -> NC_000008.11:g.134601486C>T
+- ClinGen HGVS result (CA372078013): *NC_000008.11:g.134601486C>T* / ENST00000377838.8:c.2233G>A / ENSP00000367069.3:p.Glu745Lys
+- Glu745Lys -> E745K (matches expected annotation)
+
+Create a simple text file: `~/external-variants-hgvs.txt` with a single HGVS (g.) entry on each line like this:
+```
+NC_000007.14:g.87193902_87193905del
+NC_000005.10:g.154802268del
+NC_000001.11:g.228279866G>A
+NC_000008.11:g.134601486C>T
+```
+
 
 #### Step 4. Use VEP to create an annotated VCF - using the HGVS format as input
 
