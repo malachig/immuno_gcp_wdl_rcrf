@@ -85,6 +85,19 @@ The following inputs should be obtained prior to proceeding:
 - VEP Cache
 - Reference genome
 
+```bash
+mkdir ~/refs
+cd ~/refs
+
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/rna_seq_annotation/Homo_sapiens.GRCh38.pep.all.fa.gz .
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/reference_genome/chromAlias.ensembl.txt .
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/bwamem2_2.2.1/all_sequences.fa .
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/bwamem2_2.2.1/all_sequences.fa.fai .
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/vep_cache.zip .
+
+```
+
+
 **Input data files (from a completed immuno.wdl run for the current tumor)**
 - HLA Alleles for current case
 - Phased VCF
