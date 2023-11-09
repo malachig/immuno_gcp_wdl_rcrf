@@ -1,15 +1,65 @@
 ### Run pVACseq on externally identified variants
 
-The following process fills a specific increasingly common use case. 
+The following process fills an increasingly common use case. 
 
 Specifically the case where we have run the immuno.wdl pipeline and have produced variant calls and neoantigen candidates but we have have additional variants identified by an external group, pipeline or commercial tumor portrait. Since these variants were not identified by the immuno pipeline and are not in the VCF we can not run pVACseq on them.  The following recovers these variants by creating a new VCF representing them, annotating this VCF with all the same steps performed in immuno.wdl and then runs pVACseq on that VCF.
 
+#### Local dependencies
 
-#### Goal. Feed a single variant, provided by "name" only, into pVACseq
-
-In this version the pVACseq analysis is focused on the variant only, to cover the use case where we may not even have access to tumor normal exome and tumor RNAseq data (and thus have no BAMs, no phased VCF, etc.).
+The following assumes you have gcloud installed and have authenticated to use the google cloud project below
 
 #### Step 1. Connect to a Google VM with Docker to perform the analysis
+
+Set up Google cloud configurations and make sure the right one is activated:
+
+```bash
+export GCS_PROJECT=jlf-rcrf
+export GCS_VM_NAME=jlf-adhoc-v1
+
+#list possible configs that are set up
+gcloud config configurations list
+
+#activate the rcrf config
+gcloud config configurations activate rcrf
+
+#login if needed (only needs to be done once)
+gcloud auth login 
+
+#view active config/login (should show the correct project "jlf-rcrf", zone, and email address)
+gcloud config list
+```
+
+Configure these configurations to use a specific zone. Once the config is setup and you have logged into at least once the config files should look like this:
+
+`cat ~/.config/gcloud/configurations/config_rcrf`
+
+```bash
+[compute]
+region = us-central1
+zone = us-central1-c
+[core]
+account = <email address associated with rcrf account>
+disable_usage_reporting = True
+project = jlf-rcrf
+```
+
+Launch a VM based on ubuntu but with additional dependencies installed
+
+```bash
+
+#list available machine images
+gcloud beta compute machine-images list
+
+#launch a VM based on one of these images and provision appropriate resources (machine type and disk)
+gcloud compute instances create jlf-adhoc-image-test \ 
+       --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com \ 
+       --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default \
+       --boot-disk-size=500GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
+
+#log into that instance
+gcloud compute ssh jlf-adhoc-image-test
+
+```
 
 
 #### Step 2. Gather inputs
