@@ -287,9 +287,6 @@ docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc
 exit
 ```
 
-
-
-
 ### Step 7. Adding DNA and RNA count/VAF data to the VCF
 
 docker: "mgibio/bam_readcount_helper-cwl:1.1.1"
@@ -303,15 +300,15 @@ Perform read counting and add count/VAF information from all three BAM files to 
 ```bash
 mkdir -p ~/readcounts && cd ~/readcounts
 
-docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) mgibio/bam_readcount_helper-cwl:1.1.1 /bin/bash
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) mgibio/bam_readcount_helper-cwl:1.1.1 /bin/bash
 
-/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.vcf normal_dna $HOME/refs/all_sequences.fa $HOME/inputs/normal.cram $HOME/readcounts
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz $NORMAL_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
 
 
 ```
 
 
-### Step 7.
+### Step 8. Adding express data to the VCF
 
 Work in progress.
 
