@@ -1,14 +1,14 @@
-### Run pVACseq on externally identified variants
+## Run pVACseq on externally identified variants
 
 The following process fills an increasingly common use case. 
 
 Specifically the case where we have run the immuno.wdl pipeline and have produced variant calls and neoantigen candidates but we have have additional variants identified by an external group, pipeline or commercial tumor portrait. Since these variants were not identified by the immuno pipeline and are not in the VCF we can not run pVACseq on them.  The following recovers these variants by creating a new VCF representing them, annotating this VCF with all the same steps performed in immuno.wdl and then runs pVACseq on that VCF.
 
-#### Local dependencies
+### Local dependencies
 
 The following assumes you have gcloud installed and have authenticated to use the google cloud project below
 
-#### Step 1. Connect to a Google VM with Docker to perform the analysis
+### Step 1. Connect to a Google VM with Docker to perform the analysis
 
 Set up Google cloud configurations and make sure the right one is activated:
 
@@ -75,11 +75,12 @@ sudo usermod -a -G docker $USER
 
 ```
 
-#### Step 2. Gather inputs
+### Step 2. Gather input files
 
 The following inputs should be obtained prior to proceeding:
 
-**Reference files**
+#### Reference files
+
 - Reference Protein fasta (protein sequences for all known coding transcripts)
 - Chromosome alias file
 - VEP Cache
@@ -97,8 +98,8 @@ gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/vep_cache.zip .
 
 ```
 
+#### Input data files (from a completed immuno.wdl run for the current tumor)
 
-**Input data files (from a completed immuno.wdl run for the current tumor)**
 - HLA Alleles for current case
 - Phased VCF
 - Tumor DNA BAM/CRAM (and index BAI)
@@ -114,7 +115,7 @@ Example commands to obtain each of these inputs
 ```
 
 
-#### Step 3. Use the [ClinGen Allele Registry](https://reg.clinicalgenome.org/redmine/projects/registry/genboree_registry/landing) to resolve variants to HGVS
+### Step 3. Use the [ClinGen Allele Registry](https://reg.clinicalgenome.org/redmine/projects/registry/genboree_registry/landing) to resolve variants to HGVS
 
 This step depends a bit on the starting format of the variant obtained externally.  The goal is to resolve them to a list of genomic HGVS expressions. Starting formats might look like:
 
@@ -158,7 +159,7 @@ Using the docker image above, annotate the variant with Ensembl VEP as follows
 --species homo_sapiens
 ```
 
-#### Step 5. Add tumor/normal genotype information to the VCF
+### Step 5. Add tumor/normal genotype information to the VCF
 
 `isub -m 64 -n 8 --preserve false -i 'griffithlab/vatools:latest'`
 
@@ -170,21 +171,21 @@ vcf-genotype-annotator /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb
 vcf-genotype-annotator /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.genotyped.1.vcf JLF-100-016-normal 0/0 -o /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.genotyped.2.vcf
 ```
 
-#### Step 6. Adding DNA and RNA count/VAF data to the VCF
+### Step 6. Adding DNA and RNA count/VAF data to the VCF
 
 Work in progress. 
 
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/readcounts.html
 
 
-#### Step 7.
+### Step 7.
 
 Work in progress.
 
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/expression.html
 
 
-#### Step 8. Run pVACseq on the genotyped VCF
+### Step 8. Run pVACseq on the genotyped VCF
 
 `isub -m 64 -n 8 --preserve false -i 'susannakiwala/pvactools:latest'`
 
@@ -211,7 +212,7 @@ pvacseq run /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pva
 ```
 
 
-#### Step 9. Retrieve results files from VM and clean up
+### Step 9. Retrieve results files from VM and clean up
 
 
 
