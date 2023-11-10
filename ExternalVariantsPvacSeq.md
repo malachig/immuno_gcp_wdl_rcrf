@@ -339,6 +339,8 @@ mkdir -p $HOME/readcounts && cd $HOME/readcounts
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) mgibio/bam_readcount_helper-cwl:1.1.1 /bin/bash
 
+cd $HOME/readcounts
+
 #bam read counts for normal DNA and add annotations to VCF
 /usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $NORMAL_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
 
@@ -353,14 +355,14 @@ exit
 #now add all the counts to the VCF
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
 
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz <snv_bam_readcount_file> DNA -s $NORMAL_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz <indel_bam_readcount_file> DNA -s $NORMAL_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz normal_dna_Normal-ExomeDNA-DFCI_bam_readcount_snv.tsv DNA -s $NORMAL_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz normal_dna_Normal-ExomeDNA-DFCI_bam_readcount_indel.tsv DNA -s $NORMAL_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz
 
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz <snv_bam_readcount_file> DNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz <indel_bam_readcount_file> DNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz tumor_dna_TumorMet-ExomeDNA-DFCI_bam_readcount_snv.tsv DNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz tumor_dna_TumorMet-ExomeDNA-DFCI_bam_readcount_indel.tsv DNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz
 
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz <snv_bam_readcount_file> RNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz <indel_bam_readcount_file> RNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.6.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz tumor_rna_TumorMet-ExomeDNA-DFCI_bam_readcount_snv.tsv RNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz tumor_rna_TumorMet-ExomeDNA-DFCI_bam_readcount_indel.tsv RNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.6.vcf.gz
 
 exit
 
