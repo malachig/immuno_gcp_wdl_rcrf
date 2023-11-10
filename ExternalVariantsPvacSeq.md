@@ -449,5 +449,30 @@ rm -fr $HOME/pvacseq/combined
 
 ### Step 9. Retrieve results files from VM and clean up
 
+Package up the results for convenience in case you want to dowload them locally for visualization. Also save them in the appropriate S3 bucket for this tumor.
 
+```bash
+cd $HOME
+tar -cf ext-vars-pvacseq-results.tar external-variants-hgvs.txt pvacseq vcfs/external-variants-hgvs.final.vcf.gz
+gzip ext-vars-pvacseq-results.tar
+
+exit
+```
+
+Now on local machine pull down the tarball of results
+```bash
+gcloud compute scp $USER@$GCS_VM_NAME:~/ext-vars-pvacseq-results.tar.gz .
+
+```
+
+### Step 10. Clean up Google VM resources
+Delete the instance once you are sure you wont be needing it anymore
+
+```bash
+#view currently running instances
+gcloud compute instances list 
+
+gcloud compute instances delete $GCS_VM_NAME
+
+```
 
