@@ -409,8 +409,20 @@ exit
 
 ```
 
+### Step 9. Produce a new phased VCF that incorporates all variants
 
-### Step 8. Run pVACseq on the genotyped VCF
+In order to correctly account for proximal variants, the external somatic variants need to be combined with the somatic variants from immuno.wdl and the germline variants from immuno.wdl, and all phased together. Once that is worked out the pVACseq command below could be updated to use this new phased VCF with the `-p` option.
+
+```bash
+
+WORK IN PROGRESS
+
+```
+
+Until this is resolved the impact of proximal in-phase variants (which is relatively rare) should be considered during genomics review.
+
+
+### Step 10. Run pVACseq on the genotyped VCF
 
 docker: "griffithlab/pvactools:4.0.6"
 
@@ -436,7 +448,6 @@ pvacseq run $HOME/vcfs/external-variants-hgvs.final.vcf.gz \
             --aggregate-inclusion-binding-threshold 1500 \
             --peptide-fasta $HOME/refs/Homo_sapiens.GRCh38.pep.all.fa.gz \
             -d 100 --normal-sample-name $NORMAL_NAME --problematic-amino-acids C \
-            -p $HOME/inputs/phased.vcf.gz \
             --allele-specific-anchors \
             --maximum-transcript-support-level 1 --pass-only 
 
@@ -448,7 +459,7 @@ rm -fr $HOME/pvacseq/combined
 
 ```
 
-### Step 9. Retrieve results files from VM and clean up
+### Step 11. Retrieve results files from VM and clean up
 
 Package up the results for convenience in case you want to dowload them locally for visualization. Also save them in the appropriate S3 bucket for this tumor.
 
@@ -466,7 +477,7 @@ gcloud compute scp $USER@$GCS_VM_NAME:~/ext-vars-pvacseq-results.tar.gz .
 
 ```
 
-### Step 10. Clean up Google VM resources
+### Step 12. Clean up Google VM resources
 Delete the instance once you are sure you wont be needing it anymore
 
 ```bash
