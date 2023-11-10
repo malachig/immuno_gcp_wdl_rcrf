@@ -216,18 +216,18 @@ NC_000008.11:g.134601486C>T
 ```
 
 
-#### Step 4. Use VEP to create an annotated VCF - using the HGVS format as input
+### Step 4. Use VEP to create an annotated VCF - using the HGVS format as input
 
 docker: "mgibio/vep_helper-cwl:vep_105.0_v1"
 
 Using the docker image above, annotate the variant with Ensembl VEP as follows
 
 ```
-mkdir $HOME/vcfs
-cd $HOME
+mkdir -p $HOME/vcfs && cd $HOME/vcfs
+
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) mgibio/vep_helper-cwl:vep_105.0_v1 /bin/bash
 
-cd $HOME
+cd $HOME/vcfs
 /usr/bin/perl -I /opt/lib/perl/VEP/Plugins /usr/bin/variant_effect_predictor.pl \
 --format hgvs --vcf --fork 4 --term SO --transcript_version --cache --symbol \
 -o $HOME/vcfs/external-variants-hgvs.vcf -i $HOME/external-variants-hgvs.txt --synonyms $HOME/refs/chromAlias.ensembl.txt \
@@ -266,12 +266,14 @@ export TUMOR_NAME=$(zgrep "^#" $HOME/inputs/annotated.expression.vcf.gz | grep -
 Using the docker image above, use VA tools to add genotype columns to the VCF
 
 ```bash
+cd $HOME/vcfs 
+
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
 
 echo $NORMAL_NAME
 echo $TUMOR_NAME
 
-cd $HOME
+cd $HOME/vcfs
 vcf-genotype-annotator $HOME/vcfs/external-variants-hgvs.fixed-chrs.vcf $NORMAL_NAME 0/0 -o $HOME/vcfs/external-variants-hgvs.genotyped.1.vcf
 vcf-genotype-annotator $HOME/vcfs/external-variants-hgvs.genotyped.1.vcf $TUMOR_NAME 0/1 -o $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf
 
@@ -279,6 +281,7 @@ exit
 
 less -S $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf
 
+#make sure the header for the new variants VCF matches one from the immuno.wdl result
 zgrep "^#" $HOME/inputs/annotated.expression.vcf.gz | grep -v "^##"
 grep "^#" $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf | grep -v "^##"
 
