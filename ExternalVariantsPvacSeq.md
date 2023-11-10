@@ -436,6 +436,7 @@ pvacseq run $HOME/vcfs/external-variants-hgvs.final.vcf.gz \
             --aggregate-inclusion-binding-threshold 1500 \
             --peptide-fasta $HOME/refs/Homo_sapiens.GRCh38.pep.all.fa.gz \
             -d 100 --normal-sample-name $NORMAL_NAME --problematic-amino-acids C \
+            -p $HOME/inputs/phased.vcf.gz \
             --allele-specific-anchors \
             --maximum-transcript-support-level 1 --pass-only 
 
