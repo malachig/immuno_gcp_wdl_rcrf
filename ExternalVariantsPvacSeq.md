@@ -355,14 +355,16 @@ exit
 #now add all the counts to the VCF
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
 
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz normal_dna_Normal-ExomeDNA-DFCI_bam_readcount_snv.tsv DNA -s $NORMAL_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz normal_dna_Normal-ExomeDNA-DFCI_bam_readcount_indel.tsv DNA -s $NORMAL_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz
+cd $HOME/vcfs
 
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz tumor_dna_TumorMet-ExomeDNA-DFCI_bam_readcount_snv.tsv DNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz tumor_dna_TumorMet-ExomeDNA-DFCI_bam_readcount_indel.tsv DNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $HOME/readcounts/normal_dna_Normal-ExomeDNA-DFCI_bam_readcount_snv.tsv DNA -s $NORMAL_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz $HOME/readcounts/normal_dna_Normal-ExomeDNA-DFCI_bam_readcount_indel.tsv DNA -s $NORMAL_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz
 
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz tumor_rna_TumorMet-ExomeDNA-DFCI_bam_readcount_snv.tsv RNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz
-vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz tumor_rna_TumorMet-ExomeDNA-DFCI_bam_readcount_indel.tsv RNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.6.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz $HOME/readcounts/tumor_dna_TumorMet-ExomeDNA-DFCI_bam_readcount_snv.tsv DNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz $HOME/readcounts/tumor_dna_TumorMet-ExomeDNA-DFCI_bam_readcount_indel.tsv DNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz
+
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz $HOME/readcounts/tumor_rna_TumorMet-ExomeDNA-DFCI_bam_readcount_snv.tsv RNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz $HOME/readcounts/tumor_rna_TumorMet-ExomeDNA-DFCI_bam_readcount_indel.tsv RNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.6.vcf.gz
 
 exit
 
@@ -372,7 +374,7 @@ cp external-variants-hgvs.genotyped.counts.6.vcf.gz external-variants-hgvs.genot
 
 ```
 
-### Step 8. Adding express data to the VCF
+### Step 8. Adding expression data to the VCF
 Add gene and transcript expression values from kalliso to the VCF 
 
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/expression.html
