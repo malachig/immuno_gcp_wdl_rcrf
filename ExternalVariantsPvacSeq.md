@@ -290,11 +290,16 @@ grep "^#" $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf | grep -v "^##"
 ### Step 6. Create a sorted, compressed, indexed version of the VCF
 
 Sort the VCF
+
 docker: "broadinstitute/picard:2.23.6"
 
 ```bash
 
+cd $HOME/vcfs
+
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) broadinstitute/picard:2.23.6 /bin/bash
+
+cd $HOME/vcfs
 
 /usr/bin/java -Xmx8g -jar /usr/picard/picard.jar SortVcf O=$HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf I=$HOME/vcfs/external-variants-hgvs.genotyped.2.vcf SEQUENCE_DICTIONARY=$HOME/refs/all_sequences.dict
 
@@ -305,7 +310,11 @@ Compress and Tabix index the VCF
 docker: "quay.io/biocontainers/samtools:1.11--h6270b1f_0"
 
 ```bash
+cd $HOME/vcfs
+
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
+
+cd $HOME/vcfs
 
 /usr/local/bin/bgzip -c $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf > $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz
 
