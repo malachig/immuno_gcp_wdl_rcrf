@@ -57,12 +57,18 @@ gcloud beta compute machine-images list
 gcloud compute instances create $GCS_VM_NAME \
        --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com \
        --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default \
-       --boot-disk-size=500GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
+       --machine-type=e2-standard-8
 
 #view currently running instances
 gcloud compute instances list 
 
 #log into the new instance
+gcloud compute ssh $GCS_VM_NAME
+
+#If you need to increase the size of the disk (otherwise is set by the machine image) you can do the following:
+exit
+gcloud compute disks resize $GCS_VM_NAME --size 500
+sudo reboot
 gcloud compute ssh $GCS_VM_NAME
 
 ```
@@ -147,10 +153,18 @@ aws s3 --profile jlf cp s3://rcrf-h37-data/JLF/JLF-100-054/washu/gcp_immuno/dfci
 
 Create BAM file versions of the CRAMs (needed for bam readcount step)
 
+docker: "quay.io/biocontainers/samtools:1.11--h6270b1f_0"
+
 ```bash
+cd ~/inputs
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
 
-TODO
+cd ~/inputs
+samtools view -b -T $HOME/refs/all_sequences.fa $HOME/inputs/normal.cram > $HOME/inputs/normal.bam
+samtools index $HOME/inputs/normal.bam
 
+samtools view -b -T $HOME/refs/all_sequences.fa $HOME/inputs/tumor.cram > $HOME/inputs/tumor.bam
+samtools index $HOME/inputs/tumor.bam
 ```
 
 
@@ -299,8 +313,9 @@ exit
 ### Step 7. Adding DNA and RNA count/VAF data to the VCF
 
 docker: "mgibio/bam_readcount_helper-cwl:1.1.1"
+docker:  "griffithlab/vatools:4.1.0"
 
-The following assumes the VCF does not contain multi-allelic sites. If it does refer to the following docs.
+The following assumes the VCF does not contain multi-allelic sites. If it does, refer to the following docs.
 
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/readcounts.html
 
@@ -311,17 +326,67 @@ mkdir -p ~/readcounts && cd ~/readcounts
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) mgibio/bam_readcount_helper-cwl:1.1.1 /bin/bash
 
+#bam read counts for normal DNA and add annotations to VCF
 /usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz $NORMAL_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
 
+#bam read counts for tumor DNA
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/tumor.bam tumor_dna $HOME/readcounts/
+
+#bam read counts for tumor RNA
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/MarkedSorted.bam tumor_rna $HOME/readcounts/
+
+exit
+
+#now add all the counts to the VCF
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
+
+vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz <snv_bam_readcount_file> DNA -s $NORMAL_NAME -t snv -o $HOME/external-variants-hgvs.genotyped.counts.1.vcf.gz
+vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.1.vcf.gz <indel_bam_readcount_file> DNA -s $NORMAL_NAME -t indel -o $HOME/external-variants-hgvs.genotyped.counts.2.vcf.gz
+
+vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.2.vcf.gz <snv_bam_readcount_file> DNA -s $TUMOR_NAME -t snv -o $HOME/external-variants-hgvs.genotyped.counts.3.vcf.gz
+vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.3.vcf.gz <indel_bam_readcount_file> DNA -s $TUMOR_NAME -t indel -o $HOME/external-variants-hgvs.genotyped.counts.4.vcf.gz
+
+vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.4.vcf.gz <snv_bam_readcount_file> RNA -s $TUMOR_NAME -t snv -o $HOME/external-variants-hgvs.genotyped.counts.5.vcf.gz
+vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.5.vcf.gz <indel_bam_readcount_file> RNA -s $TUMOR_NAME -t indel -o $HOME/external-variants-hgvs.genotyped.counts.6.vcf.gz
+
+exit
+
+#clean up all the VCFs
+cd ~
+mv external-variants-hgvs.genotyped.counts.6.vcf.gz external-variants-hgvs.genotyped.counts.vcf.gz
+
+rm -f external-variants-hgvs.fixed-chrs.vcf external-variants-hgvs.genotyped.1.vcf external-variants-hgvs.genotyped.2.sort.vcf external-variants-hgvs.genotyped.2.sort.vcf.gz external-variants-hgvs.genotyped.2.sort.vcf.gz.tbi external-variants-hgvs.genotyped.2.sort.vcf.idx external-variants-hgvs.genotyped.2.vcf external-variants-hgvs.vcf external-variants-hgvs.vcf_summary.html external-variants-hgvs.genotyped.counts.1.vcf.gz external-variants-hgvs.genotyped.counts.2.vcf.gz external-variants-hgvs.genotyped.counts.3.vcf.gz external-variants-hgvs.genotyped.counts.4.vcf.gz external-variants-hgvs.genotyped.counts.5.vcf.gz external-variants-hgvs.genotyped.counts.6.vcf.gz
 
 ```
 
-
 ### Step 8. Adding express data to the VCF
-
-Work in progress.
+Add gene and transcript expression values from kalliso to the VCF 
 
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/expression.html
+
+```bash
+
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
+
+vcf-expression-annotator $HOME/external-variants-hgvs.genotyped.counts.vcf.gz $HOME/inputs/gene_abundance.tsv kallisto gene -o $HOME/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz
+
+vcf-expression-annotator $HOME/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz $HOME/inputs/abundance.tsv kallisto transcript -o $HOME/external-variants-hgvs.genotyped.counts.expression.2.vcf.gz
+
+exit
+
+```
+
+Final VCFs cleanup and indexing
+
+```bash
+cd ~
+mv external-variants-hgvs.genotyped.counts.expression.2.vcf.gz external-variants-hgvs.final.vcf.gz
+
+rm -f external-variants-hgvs.genotyped.counts.vcf.gz external-variants-hgvs.genotyped.counts.expression.1.vcf.gz external-variants-hgvs.genotyped.counts.expression.2.vcf.gz
+
+
+
+```
 
 
 ### Step 8. Run pVACseq on the genotyped VCF
@@ -332,9 +397,7 @@ Using the docker image above, use pVACseq to perform neoantigen analysis on the 
 
 ```
 #MAKE SURE THE FOLLOWING HLA ALLELES ARE UPDATED TO REFLECT THE CURRENT TUMOR SAMPLE
-export HLA_ALLELES="HLA-A*01:01,HLA-A*02:13,HLA-B*08:01,HLA-B*57:03,HLA-C*07:01,HLA-C*06:02"
-
-export PEPTIDE_FASTA=/storage1/fs1/gillandersw/Active/Project_0001_Clinical_Trials/annotation_files_for_review/Homo_sapiens.GRCh38.pep.all.fa.gz
+export HLA_ALLELES=""
 
 pvacseq run /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.genotyped.2.vcf \
             JLF-100-016-tumor \
