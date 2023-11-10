@@ -368,7 +368,6 @@ vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf
 
 exit
 
-#clean up all the VCFs
 cd $HOME/vcfs
 cp external-variants-hgvs.genotyped.counts.6.vcf.gz external-variants-hgvs.genotyped.counts.vcf.gz
 
@@ -380,12 +379,15 @@ Add gene and transcript expression values from kalliso to the VCF
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/expression.html
 
 ```bash
+cd $HOME/vcfs
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
 
-vcf-expression-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.vcf.gz $HOME/inputs/gene_abundance.tsv kallisto gene -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz
+cd $HOME/vcfs
 
-vcf-expression-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz $HOME/inputs/abundance.tsv kallisto transcript -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.2.vcf.gz
+vcf-expression-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.vcf.gz $HOME/inputs/gene_abundance.tsv kallisto gene -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz -s $TUMOR_NAME
+
+vcf-expression-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz $HOME/inputs/abundance.tsv kallisto transcript -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.2.vcf.gz -s $TUMOR_NAME
 
 exit
 
@@ -398,6 +400,8 @@ cd $HOME/vcfs
 cp external-variants-hgvs.genotyped.counts.expression.2.vcf.gz external-variants-hgvs.final.vcf.gz
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
+
+cd $HOME/vcfs
 
 /usr/local/bin/tabix -p vcf $HOME/vcfs/external-variants-hgvs.final.vcf.gz
 
@@ -419,7 +423,9 @@ echo $HLA_ALLELES
 
 mkdir -p $HOME/pvacseq && cd $HOME/pvacseq
 
-docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME --env HLA_ALLELES --user $(id -u):$(id -g) griffithlab/pvactools:4.0.6 /bin/bash
+docker run -it -v $HOME/:$HOME/ --env HOME --env NORMAL_NAME --env TUMOR_NAME --env HLA_ALLELES griffithlab/pvactools:4.0.6 /bin/bash
+
+cd $HOME/pvacseq
 
 pvacseq run $HOME/vcfs/external-variants-hgvs.final.vcf.gz \
             $TUMOR_NAME \
@@ -434,6 +440,10 @@ pvacseq run $HOME/vcfs/external-variants-hgvs.final.vcf.gz \
             --maximum-transcript-support-level 1 --pass-only 
 
 exit 
+
+sudo chown -R mgriffit:mgriffit $HOME/pvacseq 
+rm -fr $HOME/pvacseq/combined
+
 
 ```
 
