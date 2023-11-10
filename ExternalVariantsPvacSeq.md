@@ -34,7 +34,7 @@ gcloud config list
 
 Configure these configurations to use a specific zone. Once the config is setup and you have logged into at least once the config files should look like this:
 
-`cat ~/.config/gcloud/configurations/config_rcrf`
+`cat $HOME/.config/gcloud/configurations/config_rcrf`
 
 ```bash
 [compute]
@@ -96,7 +96,7 @@ The following inputs should be obtained prior to proceeding:
 - Reference genome
 
 ```bash
-mkdir -p ~/refs && cd ~/refs
+mkdir -p $HOME/refs && cd $HOME/refs
 
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/rna_seq_annotation/Homo_sapiens.GRCh38.pep.all.fa.gz .
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/reference_genome/chromAlias.ensembl.txt .
@@ -123,7 +123,7 @@ unzip vep_cache.zip
 
 Example commands to obtain each of these inputs
 ```bash
-mkdir -p ~/inputs && cd ~/inputs
+mkdir -p $HOME/inputs && cd $HOME/inputs
 
 #install aws
 sudo apt install awscli -y
@@ -156,10 +156,10 @@ Create BAM file versions of the CRAMs (needed for bam readcount step)
 docker: "quay.io/biocontainers/samtools:1.11--h6270b1f_0"
 
 ```bash
-cd ~/inputs
+cd $HOME/inputs
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
 
-cd ~/inputs
+cd $HOME/inputs
 samtools view -b -T $HOME/refs/all_sequences.fa $HOME/inputs/normal.cram > $HOME/inputs/normal.bam
 samtools index $HOME/inputs/normal.bam
 
@@ -207,7 +207,7 @@ For these four examples, covering both simple SNV and indels, this works out to:
 - ClinGen HGVS result (CA372078013): *NC_000008.11:g.134601486C>T* / ENST00000377838.8:c.2233G>A / ENSP00000367069.3:p.Glu745Lys
 - Glu745Lys -> E745K (matches expected annotation)
 
-Create a simple text file: `~/external-variants-hgvs.txt` with a single HGVS (g.) entry on each line like this:
+Create a simple text file: `$HOME/external-variants-hgvs.txt` with a single HGVS (g.) entry on each line like this:
 ```
 NC_000007.14:g.87193902_87193905del
 NC_000005.10:g.154802268del
@@ -223,19 +223,20 @@ docker: "mgibio/vep_helper-cwl:vep_105.0_v1"
 Using the docker image above, annotate the variant with Ensembl VEP as follows
 
 ```
+mkdir $HOME/vcfs
 cd $HOME
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) mgibio/vep_helper-cwl:vep_105.0_v1 /bin/bash
 
 cd $HOME
 /usr/bin/perl -I /opt/lib/perl/VEP/Plugins /usr/bin/variant_effect_predictor.pl \
 --format hgvs --vcf --fork 4 --term SO --transcript_version --cache --symbol \
--o $HOME/external-variants-hgvs.vcf -i $HOME/external-variants-hgvs.txt --synonyms $HOME/refs/chromAlias.ensembl.txt \
+-o $HOME/vcfs/external-variants-hgvs.vcf -i $HOME/external-variants-hgvs.txt --synonyms $HOME/refs/chromAlias.ensembl.txt \
 --flag_pick --dir $HOME/refs/vep_cache --fasta $HOME/refs/all_sequences.fa --check_existing \
 --plugin Frameshift --plugin Wildtype --everything --assembly GRCh38 --cache_version 105 --species homo_sapiens
 
 exit
 
-less -S external-variants-hgvs.vcf
+less -S $HOME/vcfs/external-variants-hgvs.vcf
 
 ```
 
@@ -243,9 +244,9 @@ Fix the chr names in the VCF so that they will match the names used in our align
 
 ```bash
 
-cat ~/external-variants-hgvs.vcf | perl -ne 'if ($_ =~ /^#/){print $_}else{print "chr$_"}' > ~/external-variants-hgvs.fixed-chrs.vcf
+cat $HOME/vcfs/external-variants-hgvs.vcf | perl -ne 'if ($_ =~ /^#/){print $_}else{print "chr$_"}' > $HOME/vcfs/external-variants-hgvs.fixed-chrs.vcf
 
-less -S ~/external-variants-hgvs.fixed-chrs.vcf
+less -S $HOME/vcfs/external-variants-hgvs.fixed-chrs.vcf
 
 ```
 
@@ -256,10 +257,10 @@ docker: "griffithlab/vatools:latest"
 Figure the appropriate tumor and normal sample names to use by examining the somatic VCF that was produced by the immuno.wdl pipeline
 
 ```bash
-cd ~/inputs
-zgrep "^#" annotated.expression.vcf.gz | grep -v "^##"
-export NORMAL_NAME=$(zgrep "^#" annotated.expression.vcf.gz | grep -v "^##" | cut -f 10)
-export TUMOR_NAME=$(zgrep "^#" annotated.expression.vcf.gz | grep -v "^##" | cut -f 11)
+cd $HOME/inputs
+zgrep "^#" $HOME/inputs/annotated.expression.vcf.gz | grep -v "^##"
+export NORMAL_NAME=$(zgrep "^#" $HOME/inputs/annotated.expression.vcf.gz | grep -v "^##" | cut -f 10)
+export TUMOR_NAME=$(zgrep "^#" $HOME/inputs/annotated.expression.vcf.gz | grep -v "^##" | cut -f 11)
 ```
 
 Using the docker image above, use VA tools to add genotype columns to the VCF
@@ -270,16 +271,16 @@ docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc
 echo $NORMAL_NAME
 echo $TUMOR_NAME
 
-cd ~
-vcf-genotype-annotator $HOME/external-variants-hgvs.fixed-chrs.vcf $NORMAL_NAME 0/0 -o $HOME/external-variants-hgvs.genotyped.1.vcf
-vcf-genotype-annotator $HOME/external-variants-hgvs.genotyped.1.vcf $TUMOR_NAME 0/1 -o $HOME/external-variants-hgvs.genotyped.2.vcf
+cd $HOME
+vcf-genotype-annotator $HOME/vcfs/external-variants-hgvs.fixed-chrs.vcf $NORMAL_NAME 0/0 -o $HOME/vcfs/external-variants-hgvs.genotyped.1.vcf
+vcf-genotype-annotator $HOME/vcfs/external-variants-hgvs.genotyped.1.vcf $TUMOR_NAME 0/1 -o $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf
 
 exit
 
-less -S ~/external-variants-hgvs.genotyped.2.vcf
+less -S $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf
 
-zgrep "^#" ~/inputs/annotated.expression.vcf.gz | grep -v "^##"
-grep "^#" ~/external-variants-hgvs.genotyped.2.vcf | grep -v "^##"
+zgrep "^#" $HOME/inputs/annotated.expression.vcf.gz | grep -v "^##"
+grep "^#" $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf | grep -v "^##"
 
 ```
 
@@ -292,7 +293,7 @@ docker: "broadinstitute/picard:2.23.6"
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) broadinstitute/picard:2.23.6 /bin/bash
 
-/usr/bin/java -Xmx8g -jar /usr/picard/picard.jar SortVcf O=$HOME/external-variants-hgvs.genotyped.2.sort.vcf I=$HOME/external-variants-hgvs.genotyped.2.vcf SEQUENCE_DICTIONARY=$HOME/refs/all_sequences.dict
+/usr/bin/java -Xmx8g -jar /usr/picard/picard.jar SortVcf O=$HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf I=$HOME/vcfs/external-variants-hgvs.genotyped.2.vcf SEQUENCE_DICTIONARY=$HOME/refs/all_sequences.dict
 
 exit
 ```
@@ -303,9 +304,9 @@ docker: "quay.io/biocontainers/samtools:1.11--h6270b1f_0"
 ```bash
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
 
-/usr/local/bin/bgzip -c $HOME/external-variants-hgvs.genotyped.2.sort.vcf > $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz
+/usr/local/bin/bgzip -c $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf > $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz
 
-/usr/local/bin/tabix -p vcf $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz
+/usr/local/bin/tabix -p vcf $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz
 
 exit
 ```
@@ -322,40 +323,38 @@ https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/readcounts.ht
 Perform read counting and add count/VAF information from all three BAM files to the VCF
 
 ```bash
-mkdir -p ~/readcounts && cd ~/readcounts
+mkdir -p $HOME/readcounts && cd $HOME/readcounts
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) mgibio/bam_readcount_helper-cwl:1.1.1 /bin/bash
 
 #bam read counts for normal DNA and add annotations to VCF
-/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz $NORMAL_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $NORMAL_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
 
 #bam read counts for tumor DNA
-/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/tumor.bam tumor_dna $HOME/readcounts/
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/tumor.bam tumor_dna $HOME/readcounts/
 
 #bam read counts for tumor RNA
-/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/MarkedSorted.bam tumor_rna $HOME/readcounts/
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/MarkedSorted.bam tumor_rna $HOME/readcounts/
 
 exit
 
 #now add all the counts to the VCF
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
 
-vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.2.sort.vcf.gz <snv_bam_readcount_file> DNA -s $NORMAL_NAME -t snv -o $HOME/external-variants-hgvs.genotyped.counts.1.vcf.gz
-vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.1.vcf.gz <indel_bam_readcount_file> DNA -s $NORMAL_NAME -t indel -o $HOME/external-variants-hgvs.genotyped.counts.2.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz <snv_bam_readcount_file> DNA -s $NORMAL_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.1.vcf.gz <indel_bam_readcount_file> DNA -s $NORMAL_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz
 
-vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.2.vcf.gz <snv_bam_readcount_file> DNA -s $TUMOR_NAME -t snv -o $HOME/external-variants-hgvs.genotyped.counts.3.vcf.gz
-vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.3.vcf.gz <indel_bam_readcount_file> DNA -s $TUMOR_NAME -t indel -o $HOME/external-variants-hgvs.genotyped.counts.4.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.2.vcf.gz <snv_bam_readcount_file> DNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.3.vcf.gz <indel_bam_readcount_file> DNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz
 
-vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.4.vcf.gz <snv_bam_readcount_file> RNA -s $TUMOR_NAME -t snv -o $HOME/external-variants-hgvs.genotyped.counts.5.vcf.gz
-vcf-readcount-annotator $HOME/external-variants-hgvs.genotyped.counts.5.vcf.gz <indel_bam_readcount_file> RNA -s $TUMOR_NAME -t indel -o $HOME/external-variants-hgvs.genotyped.counts.6.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.4.vcf.gz <snv_bam_readcount_file> RNA -s $TUMOR_NAME -t snv -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz
+vcf-readcount-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.5.vcf.gz <indel_bam_readcount_file> RNA -s $TUMOR_NAME -t indel -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.6.vcf.gz
 
 exit
 
 #clean up all the VCFs
-cd ~
-mv external-variants-hgvs.genotyped.counts.6.vcf.gz external-variants-hgvs.genotyped.counts.vcf.gz
-
-rm -f external-variants-hgvs.fixed-chrs.vcf external-variants-hgvs.genotyped.1.vcf external-variants-hgvs.genotyped.2.sort.vcf external-variants-hgvs.genotyped.2.sort.vcf.gz external-variants-hgvs.genotyped.2.sort.vcf.gz.tbi external-variants-hgvs.genotyped.2.sort.vcf.idx external-variants-hgvs.genotyped.2.vcf external-variants-hgvs.vcf external-variants-hgvs.vcf_summary.html external-variants-hgvs.genotyped.counts.1.vcf.gz external-variants-hgvs.genotyped.counts.2.vcf.gz external-variants-hgvs.genotyped.counts.3.vcf.gz external-variants-hgvs.genotyped.counts.4.vcf.gz external-variants-hgvs.genotyped.counts.5.vcf.gz external-variants-hgvs.genotyped.counts.6.vcf.gz
+cd $HOME/vcfs
+cp external-variants-hgvs.genotyped.counts.6.vcf.gz external-variants-hgvs.genotyped.counts.vcf.gz
 
 ```
 
@@ -368,9 +367,9 @@ https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/expression.ht
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME  --user $(id -u):$(id -g) griffithlab/vatools:latest /bin/bash
 
-vcf-expression-annotator $HOME/external-variants-hgvs.genotyped.counts.vcf.gz $HOME/inputs/gene_abundance.tsv kallisto gene -o $HOME/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz
+vcf-expression-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.vcf.gz $HOME/inputs/gene_abundance.tsv kallisto gene -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz
 
-vcf-expression-annotator $HOME/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz $HOME/inputs/abundance.tsv kallisto transcript -o $HOME/external-variants-hgvs.genotyped.counts.expression.2.vcf.gz
+vcf-expression-annotator $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.1.vcf.gz $HOME/inputs/abundance.tsv kallisto transcript -o $HOME/vcfs/external-variants-hgvs.genotyped.counts.expression.2.vcf.gz
 
 exit
 
@@ -379,14 +378,12 @@ exit
 Final VCFs cleanup and indexing
 
 ```bash
-cd ~
-mv external-variants-hgvs.genotyped.counts.expression.2.vcf.gz external-variants-hgvs.final.vcf.gz
-
-rm -f external-variants-hgvs.genotyped.counts.vcf.gz external-variants-hgvs.genotyped.counts.expression.1.vcf.gz external-variants-hgvs.genotyped.counts.expression.2.vcf.gz
+cd $HOME/vcfs
+cp external-variants-hgvs.genotyped.counts.expression.2.vcf.gz external-variants-hgvs.final.vcf.gz
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
 
-/usr/local/bin/tabix -p vcf $HOME/external-variants-hgvs.final.vcf.gz
+/usr/local/bin/tabix -p vcf $HOME/vcfs/external-variants-hgvs.final.vcf.gz
 
 exit
 
@@ -404,11 +401,11 @@ Using the docker image above, use pVACseq to perform neoantigen analysis on the 
 export HLA_ALLELES=$(cat $HOME/inputs/hla_calls.txt)
 echo $HLA_ALLELES
 
-mkdir -p ~/pvacseq && cd ~/pvacseq
+mkdir -p $HOME/pvacseq && cd $HOME/pvacseq
 
 docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME --env HLA_ALLELES --user $(id -u):$(id -g) griffithlab/pvactools:4.0.6 /bin/bash
 
-pvacseq run $HOME/external-variants-hgvs.final.vcf.gz \
+pvacseq run $HOME/vcfs/external-variants-hgvs.final.vcf.gz \
             $TUMOR_NAME \
             $HLA_ALLELES \
             all $HOME/pvacseq/ \
