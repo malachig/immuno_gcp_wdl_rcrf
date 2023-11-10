@@ -384,35 +384,45 @@ mv external-variants-hgvs.genotyped.counts.expression.2.vcf.gz external-variants
 
 rm -f external-variants-hgvs.genotyped.counts.vcf.gz external-variants-hgvs.genotyped.counts.expression.1.vcf.gz external-variants-hgvs.genotyped.counts.expression.2.vcf.gz
 
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --user $(id -u):$(id -g) quay.io/biocontainers/samtools:1.11--h6270b1f_0 /bin/bash
 
+/usr/local/bin/tabix -p vcf $HOME/external-variants-hgvs.final.vcf.gz
+
+exit
 
 ```
 
 
 ### Step 8. Run pVACseq on the genotyped VCF
 
-`isub -m 64 -n 8 --preserve false -i 'susannakiwala/pvactools:latest'`
+docker: "griffithlab/pvactools:4.0.6"
 
 Using the docker image above, use pVACseq to perform neoantigen analysis on the VCF
 
 ```
-#MAKE SURE THE FOLLOWING HLA ALLELES ARE UPDATED TO REFLECT THE CURRENT TUMOR SAMPLE
-export HLA_ALLELES=""
+#Store the correct HLA alleles (make sure these are right)
+export HLA_ALLELES=$(cat $HOME/inputs/hla_calls.txt)
+echo $HLA_ALLELES
 
-pvacseq run /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/annotated.genotyped.2.vcf \
-            JLF-100-016-tumor \
+mkdir -p ~/pvacseq && cd ~/pvacseq
+
+docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro --env HOME --env NORMAL_NAME --env TUMOR_NAME --env HLA_ALLELES --user $(id -u):$(id -g) griffithlab/pvactools:4.0.6 /bin/bash
+
+pvacseq run $HOME/external-variants-hgvs.final.vcf.gz \
+            $TUMOR_NAME \
             $HLA_ALLELES \
-            all /storage1/fs1/mgriffit/Active/JLF_MCDB/cases/mcdb022/erbb3/erbb3-pvacseq/pvacseq/ \
+            all $HOME/pvacseq/ \
             -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --iedb-install-directory /opt/iedb \
             -b 500  -m median -k -t 8 --run-reference-proteome-similarity \
             --aggregate-inclusion-binding-threshold 1500 \
-            --peptide-fasta $PEPTIDE_FASTA \
-            -d 100 --normal-sample-name JLF-100-016-normal --problematic-amino-acids C \
+            --peptide-fasta $HOME/refs/Homo_sapiens.GRCh38.pep.all.fa.gz \
+            -d 100 --normal-sample-name $NORMAL_NAME --problematic-amino-acids C \
             --allele-specific-anchors \
             --maximum-transcript-support-level 1 --pass-only 
 
-```
+exit 
 
+```
 
 ### Step 9. Retrieve results files from VM and clean up
 
