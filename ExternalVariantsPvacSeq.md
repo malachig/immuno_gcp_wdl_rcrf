@@ -108,6 +108,7 @@ gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/aligner_indices/
 gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/vep_cache.zip .
 mkdir vep_cache
 mv vep_cache.zip vep_cache && cd vep_cache
+sudo apt update
 sudo apt install unzip -y
 unzip vep_cache.zip
 ```
@@ -128,6 +129,7 @@ Example commands to obtain each of these inputs
 mkdir -p $HOME/inputs && cd $HOME/inputs
 
 #install aws
+sudo apt update
 sudo apt install awscli -y
 
 #configure/authenticate aws connection to allow retrieval of input files from an s3 bucket (us-east-1)
