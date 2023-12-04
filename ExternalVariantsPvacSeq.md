@@ -303,7 +303,7 @@ vcf-genotype-annotator $HOME/vcfs/external-variants-hgvs.genotyped.1.vcf $TUMOR_
 
 exit
 
-less -S $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf
+cut -f 1-5,9,10,11 $HOME/vcfs/external-variants-hgvs.genotyped.2.vcf
 
 #make sure the header for the new variants VCF matches one from the immuno.wdl result
 zgrep "^#" $HOME/inputs/annotated.expression.vcf.gz | grep -v "^##"
