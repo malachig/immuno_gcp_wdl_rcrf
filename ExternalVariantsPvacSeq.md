@@ -68,6 +68,8 @@ gcloud compute ssh $GCS_VM_NAME
 #If you need to increase the size of the disk (otherwise is set by the machine image) you can do the following:
 exit
 gcloud compute disks resize $GCS_VM_NAME --size 500
+
+gcloud compute ssh $GCS_VM_NAME
 sudo reboot
 gcloud compute ssh $GCS_VM_NAME
 
@@ -178,6 +180,9 @@ chr7-87193899-87193903-GCAGA-G (DMTF1|p.D610fs)
 chr5-154802261-154802262-AG-A (LARP1|p.D583fs)
 chr1-228279865-228279866-G-A (OBSCN|p.R2481H)
 chr8-134601485-134601486-C-T (ZFAT|p.E745K)
+chr11-7992153-A-C (EIF3F|p.Ile169Leu)
+chr5-140841486-G-T (PCDHA8|p.Glu55Asp)
+chr11-1017955-C-T (MUC6|p.Val1616Ile)
 
 Whatever the starting format the goal is to convert these to genomic (g.) HGVS entries and to doublecheck that the protein change there agrees with expectations from the external provider of the variants.
 
@@ -207,14 +212,31 @@ For these four examples, covering both simple SNV and indels, this works out to:
 - ClinGen HGVS result (CA372078013): *NC_000008.11:g.134601486C>T* / ENST00000377838.8:c.2233G>A / ENSP00000367069.3:p.Glu745Lys
 - Glu745Lys -> E745K (matches expected annotation)
 
+**chr11-7992153-A-C (EIF3F|p.Ile169Leu)**
+- Manual HGVS: chr11 = 	NC_000011.10 -> NC_000011.10:g.7992153A>C
+- ClinGen HGVS result (CA379576879): *NC_000011.10:g.7992153A>C* / ENST00000651655.1:c.505A>C / ENSP00000499218.1:p.Ile169Leu
+- Ile169Leu -> I169L (matches expected annotation)
+
+**chr5-140841486-G-T (PCDHA8|p.Glu55Asp)**
+- Manual HGVS: chr5 = NC_000005.10 -> NC_000005.10:g.140841486G>T
+- ClinGen HGVS result (CA3449438): *NC_000005.10:g.140841486G>T* / ENST00000531613.2:c.165G>T / ENSP00000434655.1:p.Glu55Asp
+- Glu55Asp -> E55D (matches expected annotation)
+
+**chr11-1017955-C-T (MUC6|p.Val1616Ile)**
+- Manual HGVS: chr11 = NC_000011.10 -> NC_000011.10:g.1017955C>T
+- ClinGen HGVS result (CA5795887): *NC_000011.10:g.1017955C>T* / ENST00000421673.7:c.4846G>A / ENSP00000406861.2:p.Val1616Ile
+- Val1616Ile -> V1616I (matches expected annotation)
+
 Create a simple text file: `$HOME/external-variants-hgvs.txt` with a single HGVS (g.) entry on each line like this:
 ```
 NC_000007.14:g.87193902_87193905del
 NC_000005.10:g.154802268del
 NC_000001.11:g.228279866G>A
 NC_000008.11:g.134601486C>T
+NC_000011.10:g.7992153A>C
+NC_000005.10:g.140841486G>T
+NC_000011.10:g.1017955C>T
 ```
-
 
 ### Step 4. Use VEP to create an annotated VCF - using the HGVS format as input
 
