@@ -510,15 +510,14 @@ gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
 ### Generating the Peptides Order Form
 
 ```bash
-
-docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
+docker pull griffithlab/neoang_scripts
+docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts /bin/bash
 
 cd $WORKING_BASE
 
-export SAMPLE="TWJF-10146-0029"
+python3 /opt/scripts/generate_reviews_files.py -a itb-review-files/*.xlsx -c generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -classI gcp_immuno/final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII gcp_immuno/final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv -samp $GCS_CASE_NAME -o manual_review/
 
-python3 /opt/scripts/setup_review.py -WB $WORKING_BASE/ -a $WORKING_BASE/itb-review-files/*.xlsx -c $WORKING_BASE/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -samp $SAMPLE  -classI $WORKING_BASE/final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII $WORKING_BASE/final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv 
-
+python3 /opt/scripts/color_peptides51mer.py -p manual_review/*Peptides_51-mer.xlsx -samp $GCS_CASE_NAME -o manual_review/
 ```
 
 Open colored_peptides51mer.html and copy the table into an excel spreadsheet. The formatting should remain. Utilizing the Annotated.Neoantigen_Candidates and colored Peptides_51-mer for manual review.
