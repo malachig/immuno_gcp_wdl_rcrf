@@ -99,7 +99,8 @@ docker pull griffithlab/pvactools:latest
 docker run -it -v $HOME/:$HOME/ --env HOME --env SAMPLE_NAME --env HLA_ALLELES --env WORKING_DIR --env INFILE griffithlab/pvactools:latest /bin/bash
 cd $HOME
 
-pvacbind run $INFILE $SAMPLE_NAME $HLA_ALLELES all $WORKING_DIR -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --n-threads 8 --iedb-install-directory /opt/iedb/ 1>$WORKING_DIR/stdout.txt 2>$WORKING_DIR/stderr.txt
+pvacbind run $INFILE $SAMPLE_NAME $HLA_ALLELES all $WORKING_DIR -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --n-threads 8 --iedb-install-directory /opt/iedb/ 2>&1 | tee $WORKING_DIR/logs.txt
+
 ```
 
 ### Retrieve final result files to local system
