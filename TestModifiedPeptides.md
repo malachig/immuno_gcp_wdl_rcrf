@@ -144,8 +144,8 @@ The following assumes that:
 
 Set some environment variables. Make sure the sample name and HLA alleles are correct for the current case!
 ```bash
-export SAMPLE_NAME="jlf-100-026"
-export HLA_ALLELES="HLA-A*02:01,HLA-A*24:02,HLA-B*07:02,HLA-B*35:02,HLA-C*04:01,HLA-C*07:02"
+export SAMPLE_NAME="jlf-100-000"
+export HLA_ALLELES=""
 ```
 
 Create the N-terminal fasta files first
@@ -281,7 +281,7 @@ Files to be kept:
 #leave the GCP VM
 exit
 
-export SAMPLE_NAME="jlf-100-026"
+export SAMPLE_NAME="jlf-100-000"
 
 mkdir ${SAMPLE_NAME}_modified_peptide_results
 cd ${SAMPLE_NAME}_modified_peptide_results
