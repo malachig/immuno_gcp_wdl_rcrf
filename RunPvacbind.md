@@ -9,7 +9,7 @@ The following assumes you have gcloud installed and have authenticated to use th
 Set up Google cloud configurations and make sure the right one is activated:
 ```bash 
 export GCS_PROJECT=jlf-rcrf
-export GCS_VM_NAME=mg-test-peptide-mods 
+export GCS_VM_NAME=mg-run-pvacbind
 
 #list possible configs that are set up
 gcloud config configurations list
