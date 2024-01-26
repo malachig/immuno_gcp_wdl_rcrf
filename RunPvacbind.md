@@ -112,8 +112,8 @@ Files to be kept:
 cd $HOME
 rm -fr $HOME/pvacbind/combined
 
-tar -cf results.tar $INFILE $WORKING_DIR
-gzip results.tar
+tar -cf $SAMPLE_NAME.pvacbind.results.tar $INFILE $WORKING_DIR
+gzip $SAMPLE_NAME.pvacbind.results.tar
 
 ```
 
@@ -124,7 +124,7 @@ exit
 
 export SAMPLE_NAME="jlf-100-000"
 
-gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv
+gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.pvacbind.results.tar.gz ${SAMPLE_NAME}.pvacbind.results.tar.gz
 
 
 ```
