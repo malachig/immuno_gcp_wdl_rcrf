@@ -77,12 +77,16 @@ docker run hello-world
 
 ```
 
-Set some environment variables. Make sure the sample name and HLA alleles are correct for the current case!
+Set some environment variables. Download protein fasta. Make sure the sample name and HLA alleles are correct for the current case!
 ```bash
+cd $HOME
 export SAMPLE_NAME="jlf-100-000"
 export HLA_ALLELES=""
 export WORKING_DIR=$HOME/pvacbind
 export INFILE=$HOME/input_peptides.fa
+export PEPTIDE_FASTA=$HOME/Homo_sapiens.GRCh38.pep.all.fa.gz
+
+gsutil cp gs://griffith-lab-workflow-inputs/human_GRCh38_ens105/rna_seq_annotation/Homo_sapiens.GRCh38.pep.all.fa.gz .
 
 mkdir -p $WORKING_DIR
 ```
@@ -93,10 +97,10 @@ At this point you need to input the peptide sequences of interest into $HOME/inp
 
 ```bash
 docker pull griffithlab/pvactools:latest
-docker run -it -v $HOME/:$HOME/ --env HOME --env SAMPLE_NAME --env HLA_ALLELES --env WORKING_DIR --env INFILE griffithlab/pvactools:latest /bin/bash
+docker run -it -v $HOME/:$HOME/ --env HOME --env SAMPLE_NAME --env HLA_ALLELES --env WORKING_DIR --env INFILE --env PEPTIDE_FASTA griffithlab/pvactools:latest /bin/bash
 cd $HOME
 
-pvacbind run $INFILE $SAMPLE_NAME $HLA_ALLELES all $WORKING_DIR -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --n-threads 8 --iedb-install-directory /opt/iedb/ 2>$WORKING_DIR/stderr.txt | tee $WORKING_DIR/stdout.txt
+pvacbind run $INFILE $SAMPLE_NAME $HLA_ALLELES all $WORKING_DIR -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --n-threads 8 --iedb-install-directory /opt/iedb/ --run-reference-proteome-similarity --peptide-fasta $PEPTIDE_FASTA 2>$WORKING_DIR/stderr.txt | tee $WORKING_DIR/stdout.txt
 
 exit
 
