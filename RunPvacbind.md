@@ -124,14 +124,7 @@ exit
 
 export SAMPLE_NAME="jlf-100-000"
 
-mkdir ${SAMPLE_NAME}_modified_peptide_results
-cd ${SAMPLE_NAME}_modified_peptide_results
-
 gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.tsv
-
-gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv ${SAMPLE_NAME}.all_epitopes.all_modifications.problematic.tsv
-
-gcloud compute scp $USER@$GCS_VM_NAME:${SAMPLE_NAME}.problematic.summary.complete.tsv ${SAMPLE_NAME}.problematic.summary.complete.tsv
 
 
 ```
