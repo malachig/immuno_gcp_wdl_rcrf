@@ -112,7 +112,7 @@ Files to be kept:
 cd $HOME
 rm -fr $HOME/pvacbind/combined
 
-tar -cf $SAMPLE_NAME.pvacbind.results.tar $INFILE $WORKING_DIR
+tar -cf $SAMPLE_NAME.pvacbind.results.tar input_peptides.fa pvacbind
 gzip $SAMPLE_NAME.pvacbind.results.tar
 
 ```
