@@ -117,10 +117,10 @@ gzip results.tar
 
 ```
 
-#leave the GCP VM and download the final results
-exit
+Leave the GCP VM and download the final results
 
 ```
+exit
 
 export SAMPLE_NAME="jlf-100-000"
 
