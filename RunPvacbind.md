@@ -43,10 +43,7 @@ project = jlf-rcrf
 Launch GCP instance set up for ad hoc analyses (including docker)
 
 ```bash
-gcloud compute instances create $GCS_VM_NAME \ 
-       --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com \ 
-       --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default \
-       --boot-disk-size=250GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
+gcloud compute instances create $GCS_VM_NAME --service-account=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com --source-machine-image=jlf-adhoc-v1 --network=cloud-workflows --subnet=cloud-workflows-default --boot-disk-size=250GB --boot-disk-type=pd-ssd --machine-type=e2-standard-8
 ```
 
 ### Log into the GCP instance and check status
@@ -99,7 +96,11 @@ docker pull griffithlab/pvactools:latest
 docker run -it -v $HOME/:$HOME/ --env HOME --env SAMPLE_NAME --env HLA_ALLELES --env WORKING_DIR --env INFILE griffithlab/pvactools:latest /bin/bash
 cd $HOME
 
-pvacbind run $INFILE $SAMPLE_NAME $HLA_ALLELES all $WORKING_DIR -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --n-threads 8 --iedb-install-directory /opt/iedb/ 2>$WORKING_DIR/stderr.txt | tee $WORKING_DIR/logs.txt
+pvacbind run $INFILE $SAMPLE_NAME $HLA_ALLELES all $WORKING_DIR -e1 8,9,10,11 -e2 12,13,14,15,16,17,18 --n-threads 8 --iedb-install-directory /opt/iedb/ 2>$WORKING_DIR/stderr.txt | tee $WORKING_DIR/stdout.txt
+
+exit
+
+sudo chown -R $USER:$USER $WORKING_DIR
 
 ```
 
@@ -107,13 +108,19 @@ pvacbind run $INFILE $SAMPLE_NAME $HLA_ALLELES all $WORKING_DIR -e1 8,9,10,11 -e
 
 Files to be kept:
 
-- ...
-- ...
-- ...
-
 ```bash
-#leave the GCP VM
+cd $HOME
+rm -fr $HOME/pvacbind/combined
+
+tar -cf results.tar $INFILE $WORKING_DIR
+gzip results.tar
+
+```
+
+#leave the GCP VM and download the final results
 exit
+
+```
 
 export SAMPLE_NAME="jlf-100-000"
 
