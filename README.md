@@ -511,11 +511,12 @@ gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
 
 ```bash
 docker pull griffithlab/neoang_scripts
-docker run -it --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts /bin/bash
+docker run -it --env WORKING_BASE --env GCS_CASE_NAME -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts /bin/bash
 
 cd $WORKING_BASE
+mkdir manual_review
 
-python3 /opt/scripts/generate_reviews_files.py -a itb-review-files/*.xlsx -c generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -classI gcp_immuno/final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII gcp_immuno/final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv -samp $GCS_CASE_NAME -o manual_review/
+python3 /opt/scripts/generate_reviews_files.py -a itb-review-files/*.xlsx -c generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -classI final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv -samp $GCS_CASE_NAME -o manual_review/
 
 python3 /opt/scripts/color_peptides51mer.py -p manual_review/*Peptides_51-mer.xlsx -samp $GCS_CASE_NAME -o manual_review/
 ```
