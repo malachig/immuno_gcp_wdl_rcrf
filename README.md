@@ -402,22 +402,21 @@ This instructions assume you have none of the the immuno final result files down
 ```bash
 export WORKING_BASE=/Users/evelynschmidt/jlf/JLF-100-047/gcp_immuno
 export PATIENT_ID=JLF-100-047
-export GCS_CASE_NAME=jlf-100-047-bg004733
 export CLOUD_YAML=jlf-100-047-bg004733_immuno_cloud-WDL.yaml
 
 cd $WORKING_BASE
 mkdir yamls
 cd yamls
-aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/${CLOUD_YAML} . 
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/${CLOUD_YAML} . 
 cd $WORKING_BASE
 
 mkdir final_results
 cd final_results
-aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/variants.final.annotated.tsv .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/variants.final.annotated.tsv .
 
 mkdir qc
 cd qc
-aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/qc/ . 
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/qc/ . 
 cd $WORKING_BASE
 
 docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
@@ -438,7 +437,6 @@ cd $WORKING_BASE
 cd final_results
 aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
 aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz.tbi .
-aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
 
 mkdir pVACseq
 cd pVACseq
@@ -511,14 +509,14 @@ gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
 
 ```bash
 docker pull griffithlab/neoang_scripts
-docker run -it --env WORKING_BASE --env GCS_CASE_NAME -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts /bin/bash
+docker run -it --env WORKING_BASE --env PATIENT_ID -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts /bin/bash
 
 cd $WORKING_BASE
 mkdir manual_review
 
-python3 /opt/scripts/generate_reviews_files.py -a itb-review-files/*.xlsx -c generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -classI final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv -samp $GCS_CASE_NAME -o manual_review/
+python3 /opt/scripts/generate_reviews_files.py -a itb-review-files/*.xlsx -c generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -classI final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv -samp $PATIENT_ID -o manual_review/
 
-python3 /opt/scripts/color_peptides51mer.py -p manual_review/*Peptides_51-mer.xlsx -samp $GCS_CASE_NAME -o manual_review/
+python3 /opt/scripts/color_peptides51mer.py -p manual_review/*Peptides_51-mer.xlsx -samp $PATIENT_ID -o manual_review/
 ```
 
 Open colored_peptides51mer.html and copy the table into an excel spreadsheet. The formatting should remain. Utilizing the Annotated.Neoantigen_Candidates and colored Peptides_51-mer for manual review.
