@@ -435,12 +435,12 @@ After the ITB review is complete, stage the resulting candidates TSV file to the
 ```bash
 cd $WORKING_BASE
 cd final_results
-aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz .
-aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/annotated.expression.vcf.gz.tbi .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/annotated.expression.vcf.gz .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/annotated.expression.vcf.gz.tbi .
 
 mkdir pVACseq
 cd pVACseq
-aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/${GCS_CASE_NAME}/gcp_immuno_workflow/pVACseq .
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/pVACseq .
 
 cd $WORKING_BASE
 mkdir itb-review-files
