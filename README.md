@@ -391,14 +391,35 @@ aws s3 ls s3://rcrf-h37-data/JLF/${PATIENT_ID}/
 aws s3 cp $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml 
 aws s3 cp --recursive $WORKING_BASE s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/
 aws s3 ls s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/
-exit
-
 ```
 
 ### Gather basic QC for Final report
-These instructions assume that you have no case data accessible and gives instructions to download just what you need for these scripts to run. Pull the basic data qc from various files. This script will output a file final_results/qc_file.txt and also print the summary to to screen.
-This instructions assume you have none of the the immuno final result files downloaded from AWS.
+On google VM:
 
+```bash
+gcloud compute ssh $GCS_INSTANCE_NAME
+
+cd $WORKING_BASE
+
+docker run -it --env HOME --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
+
+cd $HOME
+mkdir manual_review
+cd manual_review
+
+python3 /opt/scripts/get_neoantigen_qc.py -WB $HOME -f final_results --yaml $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml
+python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
+
+exit
+
+
+# Add the manual review files to the AWS bucket
+aws s3 cp --recursive $HOME/manual_review/ s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/manual_review/
+aws s3 ls s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/manual_review/
+```
+
+If the VM has already been deleted, you can download just what you need for these scripts to run. 
+This instructions assume you have none of the the immuno final result files downloaded from AWS.
 ```bash
 export WORKING_BASE=/Users/evelynschmidt/jlf/JLF-100-047/gcp_immuno
 export PATIENT_ID=JLF-100-047
