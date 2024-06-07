@@ -356,7 +356,7 @@ The following assumes the VCF does not contain multi-allelic sites. If it does, 
 
 https://pvactools.readthedocs.io/en/latest/pvacseq/input_file_prep/readcounts.html
 
-Perform read counting and add count/VAF information from all three BAM files to the VCF
+Perform read counting of the somatic variants (tumor genotype) and add count/VAF information from all three BAM files to the VCF
 
 ```bash
 mkdir -p $HOME/readcounts && cd $HOME/readcounts
@@ -365,13 +365,13 @@ docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc
 
 cd $HOME/readcounts
 
-#bam read counts for normal DNA and add annotations to VCF
+#bam read counts of somatic tumor variants from normal DNA BAM and add these count annotations to VCF
 /usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $NORMAL_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
 
-#bam read counts for tumor DNA
+#bam read counts of somatic tumor variants from tumor DNA BAM and add these count annotations to VCF
 /usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/tumor.bam tumor_dna $HOME/readcounts/
 
-#bam read counts for tumor RNA
+#bam read counts of somatic tumor variants from tumor RNA BAM and add these count annotations to VCF
 /usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/MarkedSorted.bam tumor_rna $HOME/readcounts/
 
 exit
