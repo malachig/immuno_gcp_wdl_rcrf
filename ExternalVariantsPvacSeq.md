@@ -366,7 +366,7 @@ docker run -it -v $HOME/:$HOME/ -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc
 cd $HOME/readcounts
 
 #bam read counts of somatic tumor variants from normal DNA BAM and add these count annotations to VCF
-/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $NORMAL_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
+/usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/normal.bam normal_dna $HOME/readcounts/
 
 #bam read counts of somatic tumor variants from tumor DNA BAM and add these count annotations to VCF
 /usr/bin/python /usr/bin/bam_readcount_helper.py $HOME/vcfs/external-variants-hgvs.genotyped.2.sort.vcf.gz $TUMOR_NAME $HOME/refs/all_sequences.fa $HOME/inputs/tumor.bam tumor_dna $HOME/readcounts/
