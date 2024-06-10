@@ -75,7 +75,7 @@ The following environment variables are used merely for convenience and should b
 ```bash
 export GCS_PROJECT=jlf-rcrf
 export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
-export GCS_BUCKET_NAME=malachi-jlf-immuno
+export GCS_BUCKET_NAME=jlf-rcrf-immuno-outputs
 export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
 export GCS_CASE_NAME=jlf-100-044
 export GCS_INSTANCE_NAME=mg-immuno-${GCS_CASE_NAME}
@@ -171,41 +171,11 @@ gcloud compute ssh $GCS_INSTANCE_NAME
 
 export GCS_PROJECT=jlf-rcrf
 export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
-export GCS_BUCKET_NAME=malachi-jlf-immuno
+export GCS_BUCKET_NAME=jlf-rcrf-immuno-outputs
 export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
 export GCS_CASE_NAME=jlf-100-044
 
 source /shared/helpers.sh
-
-```
-
-### Stage input data files to cloud bucket
-
-First install the AWS CLI (this could be moved to the VM setup)
-
-```bash
-cd ~
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-```
-
-Stage data from wherever it is coming from into the Google bucket. The following is
-an example but will vary from case to case, and relies on you having access/credentials
-for the data.
-
-```bash
-cd ~
-mkdir data
-cd data
-
-aws s3 ls s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/
-aws s3 cp --recursive s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/BG004015 .
-
-gsutil cp -r ./* gs://malachi-jlf-immuno/input_data/2023-07-28/
-gsutil ls gs://malachi-jlf-immuno/input_data/2023-07-28/
-
-rm -fr ~/data
 
 ```
 
@@ -231,6 +201,12 @@ You will now need to update this YAML to correspond to your data in the followin
 - If available, add Google bucket paths to validated variants VCF and VCF index
 - If available, add known HLA alleles for the case
 - If desired update any run time parameters
+
+After you have made changes to the yaml, copy it to the case google cloud folder.
+
+```bash
+gsutil cp ${GCS_CASE_NAME}_immuno_cloud-WDL.yaml gs://jlf-rcrf-immuno-outputs/${GCS_CASE_NAME}
+```
 
 ### Run the immuno workflow using everything setup thus far
 
