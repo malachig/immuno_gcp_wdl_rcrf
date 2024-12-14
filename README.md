@@ -75,7 +75,7 @@ The following environment variables are used merely for convenience and should b
 ```bash
 export GCS_PROJECT=jlf-rcrf
 export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
-export GCS_BUCKET_NAME=malachi-jlf-immuno
+export GCS_BUCKET_NAME=jlf-rcrf-immuno-outputs
 export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
 export GCS_CASE_NAME=jlf-100-044
 export GCS_INSTANCE_NAME=mg-immuno-${GCS_CASE_NAME}
@@ -171,41 +171,13 @@ gcloud compute ssh $GCS_INSTANCE_NAME
 
 export GCS_PROJECT=jlf-rcrf
 export GCS_SERVICE_ACCOUNT=cromwell-server@$GCS_PROJECT.iam.gserviceaccount.com
-export GCS_BUCKET_NAME=malachi-jlf-immuno
+export GCS_BUCKET_NAME=jlf-rcrf-immuno-outputs
 export GCS_BUCKET_PATH=gs://$GCS_BUCKET_NAME
 export GCS_CASE_NAME=jlf-100-044
+export PATIENT_ID="JLF-100-044"
+export WORKING_BASE=$HOME/gcp_immuno/
 
 source /shared/helpers.sh
-
-```
-
-### Stage input data files to cloud bucket
-
-First install the AWS CLI (this could be moved to the VM setup)
-
-```bash
-cd ~
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-```
-
-Stage data from wherever it is coming from into the Google bucket. The following is
-an example but will vary from case to case, and relies on you having access/credentials
-for the data.
-
-```bash
-cd ~
-mkdir data
-cd data
-
-aws s3 ls s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/
-aws s3 cp --recursive s3://rcrf-h37-data/JLF/JLF-100-044/Raw_Sequencing_Data/BG004015 .
-
-gsutil cp -r ./* gs://malachi-jlf-immuno/input_data/2023-07-28/
-gsutil ls gs://malachi-jlf-immuno/input_data/2023-07-28/
-
-rm -fr ~/data
 
 ```
 
@@ -214,6 +186,8 @@ Create a directory for YAML files and create one for the desired pipeline that p
 
 ```bash
 gcloud compute ssh $GCS_INSTANCE_NAME
+
+mkdir $WORKING_BASE 
 mkdir git
 mkdir yamls
 cd ~/git
@@ -231,6 +205,12 @@ You will now need to update this YAML to correspond to your data in the followin
 - If available, add Google bucket paths to validated variants VCF and VCF index
 - If available, add known HLA alleles for the case
 - If desired update any run time parameters
+
+After you have made changes to the yaml, copy it to the case google cloud folder.
+
+```bash
+gsutil cp ${GCS_CASE_NAME}_immuno_cloud-WDL.yaml gs://jlf-rcrf-immuno-outputs/${GCS_CASE_NAME}
+```
 
 ### Run the immuno workflow using everything setup thus far
 
@@ -319,21 +299,20 @@ On the Google VM, jump into a docker container with the script available
 gsutil ls $GCS_BUCKET_PATH/workflow_artifacts/
 journalctl -u cromwell | tail | grep "Workflow actor"
 export WORKFLOW_ID=<id from above>
-export WORKING_BASE=$HOME/final_results
-cd $HOME
-mkdir $WORKING_BASE
-cd $WORKING_BASE
 
 docker run -it --env WORKFLOW_ID --env GCS_BUCKET_PATH --env WORKING_BASE -v $WORKING_BASE/:$WORKING_BASE/ -v $HOME/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
+
+cd $WORKING_BASE
+mkdir final_results
+cd final_results
 
 ```
 
 Execute the script:
 
 ```bash
-python3 /opt/scripts/pull_outputs.py --outputs-file=$GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/outputs.json --outputs-dir=$WORKING_BASE/
+python3 /opt/scripts/pull_outputs.py --outputs-file=$GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/outputs.json --outputs-dir=$WORKING_BASE/final_results/
 exit
-
 ```
 
 Examine the outputs briefly:
@@ -381,60 +360,174 @@ pvacseq run $HOME/final_results/annotated.expression.vcf.gz \
 ```
 
 
-### Store the final results in the RCRF S3 bucket 
+### Store the final results on Google Cloud
 Use AWS cli to upload final results files to S3.  Make sure you update the paths below to correspond to the correct patient!
 
 ```bash
 cd $WORKING_BASE
-export PATIENT_ID="JLF-100-044"
-aws s3 ls s3://rcrf-h37-data/JLF/${PATIENT_ID}/
-aws s3 cp $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml 
-aws s3 cp --recursive $WORKING_BASE s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/
-aws s3 ls s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/
+
+# check to make sure you are copying to the correct bucket
+gsutil ls $GCS_BUCKET_PATH/$PATIENT_ID/
+
+gsutil cp -r final_results/ $GCS_BUCKET_PATH/$PATIENT_ID/
+
+exit
+```
+
+### Get Timing Data
+Now locally, NOT on the VM. 
+
+```
+cd $WORKING_BASE
+mkdir costs
+cd costs
+
+mkdir metadata
+cd metadata
+
+export WORKFLOW_ID=<id from above>
+gsutil cp -r $GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/metadata .
+
+docker run -it --env HOME --env WORKING_BASE --env WORKFLOW_ID -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud mgibio/cloudize-workflow:latest /bin/bash
+cd $WORKING_BASE/costs
+
+python3 $WORKING_BASE/git/cloud-workflows/scripts/estimate_billing.py $WORKFLOW_ID metadata/ > costs.json
+python3 $WORKING_BASE/git/cloud-workflows/scripts/estimate_billing.py $WORKFLOW_ID $GCS_BUCKET_PATH/workflow_artifacts/$WORKFLOW_ID/artifacts/metadata/ > costs.json
+python3 $WORKING_BASE/git/cloud-workflows/scripts/costs_json_to_csv.py costs.json > costs.csv
+cat costs.csv | sed 's/,/\t/g' > costs.tsv
+
 exit
 
+cd $WORKING_BASE/costs
+
+cut -f 1 costs.tsv | perl -pe 's/_shard-\d+//g' | sort | uniq | while read i;do echo "$i     $(grep $i costs.tsv | cut -f 13 | awk '{ SUM += $1} END { print SUM}')";done | sed 's/ \+ /\t/g' > costs_total_condensed.tsv
+cut -f 1 costs.tsv | perl -pe 's/_shard-\d+//g' | sort | uniq | while read i;do echo "$i     $(grep $i costs.tsv | cut -f 9 | awk '{ SUM += $1} END { print SUM}')";done | sed 's/ \+ /\t/g' > costs_memory_condensed.tsv
+cut -f 1 costs.tsv | perl -pe 's/_shard-\d+//g' | sort | uniq | while read i;do echo "$i     $(grep $i costs.tsv | cut -f 10 | awk '{ SUM += $1} END { print SUM}')";done | sed 's/ \+ /\t/g' > costs_cpu_condensed.tsv
+cut -f 1 costs.tsv | perl -pe 's/_shard-\d+//g' | sort | uniq | while read i;do echo "$i     $(grep $i costs.tsv | cut -f 11 | awk '{ SUM += $1} END { print SUM}')";done | sed 's/ \+ /\t/g' > costs_disk_condensed.tsv
+
+paste costs_total_condensed.tsv costs_cpu_condensed.tsv costs_memory_condensed.tsv costs_disk_condensed.tsv | cut -f 1,2,4,6,8 > costs_report.tsv
+echo -e "task\ttotal\tcpu\tmemory\tdisk" > header.tsv
+sort -n -k 2 -r costs_report.tsv | cat header.tsv - > costs_report_final.tsv
+rm -f costs_report.tsv header.tsv costs.csv
+
+#Summarize overall costs -- ADD THIS TO THE GENOMICS REPORT
+tail costs.json | head -n 9 | tr -d \" | tr -d "," | grep -v durationSeconds | grep -v Time
+
+#List top 20 tasks by cost
+head -n 21 costs_report_final.tsv | column -t
 ```
 
 
+### Gather basic QC for Final report
+On google VM:
+
+```bash
+gcloud compute ssh $GCS_INSTANCE_NAME
+
+cd $WORKING_BASE
+
+docker run -it --env HOME --env WORKING_BASE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
+
+cd $WORKING_BASE
+mkdir ../manual_review
+cd ../manual_review
+
+python3 /opt/scripts/get_neoantigen_qc.py -WB $WORKING_BASE -f final_results --yaml $HOME/yamls/${GCS_CASE_NAME}_immuno_cloud-WDL.yaml
+python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
+python3 /opt/scripts/hla_comparison.py -WB $WORKING_BASE
+exit
+
+# Add the manual review files to the Google bucket
+gsutil cp -r manual_review/ $GCS_BUCKET_PATH/$PATIENT_ID/
+```
+
+If the VM has already been deleted, you can download just what you need for these scripts to run. 
+This instructions assume you have none of the the immuno final result files downloaded from AWS.
+```bash
+export WORKING_BASE=/Users/evelynschmidt/jlf/JLF-100-047/gcp_immuno
+export PATIENT_ID=JLF-100-047
+export CLOUD_YAML=jlf-100-047-bg004733_immuno_cloud-WDL.yaml
+
+cd $WORKING_BASE
+mkdir yamls
+cd yamls
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/${CLOUD_YAML} . 
+cd $WORKING_BASE
+
+mkdir final_results
+cd final_results
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/variants.final.annotated.tsv .
+
+mkdir qc
+cd qc
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/qc/ . 
+cd $WORKING_BASE
+
+docker run -it --env WORKING_BASE --env CLOUD_YAML -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts:latest /bin/bash
+
+mkdir $WORKING_BASE/../manual_review
+cd $WORKING_BASE/../manual_review
+
+python3 /opt/scripts/get_neoantigen_qc.py -WB $WORKING_BASE -f final_results --yaml $WORKING_BASE/yamls/$CLOUD_YAML
+python3 /opt/scripts/get_FDA_thresholds.py -WB  $WORKING_BASE -f final_results
+exit
+```
 ### Run the generate protein fasta step after ITB review is complete
 
 After the ITB review is complete, stage the resulting candidates TSV file to the Google VM and use it to generate the long peptide sequence spreadsheet and fasta files that will be needed to complete the peptide order forms.
 
 ```bash
-cd $HOME
+cd $WORKING_BASE
+cd final_results
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/annotated.expression.vcf.gz .
+aws s3 cp s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/annotated.expression.vcf.gz.tbi .
+
+mkdir pVACseq
+cd pVACseq
+aws s3 cp --recursive s3://rcrf-h37-data/JLF/${PATIENT_ID}/gcp_immuno_workflow/pVACseq .
+
+cd $WORKING_BASE
+mkdir itb-review-files
+gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
+gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.xlsx .
+
+cd $WORKING_BASE
 mkdir generate_protein_fasta
 cd generate_protein_fasta
 mkdir candidates
 mkdir all
 
-gsutil cp gs://malachi-jlf-immuno/JLF-100-044-Reviewed-Annotated.Neoantigen_Candidates.tsv .
-
 #generate a protein fasta file using the final annotated/evaluated neoantigen candidates TSV as input
 #this will filter down to only those candidates under consideration and use the top transcript
-export PATIENT_ID="JLF-100-044"
-export ITB_REVIEW_FILE=${PATIENT_ID}-Reviewed-Annotated.Neoantigen_Candidates.tsv
 
-docker run -it --env HOME --env PATIENT_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v /shared/:/shared/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+# check the file to find Tumor sample ID in the #CHROM header of VCF
+
+gzcat $WORKING_BASE/final_results/annotated.expression.vcf.gz | less
+export TUMOR_SAMPLE_ID="100-049-BG004667"
+
+docker run -it --env WORKING_BASE --env TUMOR_SAMPLE_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+
+cd $WORKING_BASE/
 
 pvacseq generate_protein_fasta \
-      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      -p $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
-      -s ${PATIENT_ID}-tumor-exome \
+      -s ${TUMOR_SAMPLE_ID} \
       --aggregate-report-evaluation {Accept,Review} \
-      --input-tsv $HOME/generate_protein_fasta/$ITB_REVIEW_FILE \
-      $HOME/final_results/annotated.expression.vcf.gz \
+      --input-tsv $WORKING_BASE/itb-review-files/*.tsv \
+      $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
-      $HOME/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
+      $WORKING_BASE/generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa
 
 #in somes cases the top candidate may not be the best one (e.g. a different transcript is found to be better during review)
 #generate the unfiltered result so that one can consider alternatives
 pvacseq generate_protein_fasta \
-      -p $HOME/final_results/pVACseq/phase_vcf/phased.vcf.gz \
+      -p  $WORKING_BASE/final_results/pVACseq/phase_vcf/phased.vcf.gz \
       --pass-only --mutant-only -d 150 \
-      -s ${PATIENT_ID}-tumor-exome \
-      $HOME/final_results/annotated.expression.vcf.gz \
+      -s ${TUMOR_SAMPLE_ID} \
+      $WORKING_BASE/final_results/annotated.expression.vcf.gz \
       25 \
-      $HOME/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
+      $WORKING_BASE/generate_protein_fasta/all/annotated_filtered.vcf-pass-51mer.fa
 
 exit
 
@@ -456,6 +549,22 @@ gsutil cp -r gs://malachi-jlf-immuno/generate_protein_fasta .
 
 ```
 
+### Generating the Peptides Order Form
+
+```bash
+docker pull griffithlab/neoang_scripts
+docker run -it --env WORKING_BASE --env PATIENT_ID -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/neoang_scripts /bin/bash
+
+cd $WORKING_BASE
+mkdir manual_review
+
+python3 /opt/scripts/generate_reviews_files.py -a itb-review-files/*.xlsx -c generate_protein_fasta/candidates/annotated_filtered.vcf-pass-51mer.fa.manufacturability.tsv -classI final_results/pVACseq/mhc_i/*.all_epitopes.aggregated.tsv -classII final_results/pVACseq/mhc_ii/*.all_epitopes.aggregated.tsv -samp $PATIENT_ID -o manual_review/
+
+python3 /opt/scripts/color_peptides51mer.py -p manual_review/*Peptides_51-mer.xlsx -samp $PATIENT_ID -o manual_review/
+```
+
+Open colored_peptides51mer.html and copy the table into an excel spreadsheet. The formatting should remain. Utilizing the Annotated.Neoantigen_Candidates and colored Peptides_51-mer for manual review.
+
 
 ### Once the workflow is done and results retrieved, destroy the Cromwell VM on GCP to avoid wasting resources
 
@@ -468,3 +577,11 @@ gcloud compute instances delete $GCS_INSTANCE_NAME
 You can empty the cloud bucket either in the Web Console or using commands like `gsutil rm -r $GCS_BUCKET_PATH/folder-name`.
 
 Finally, you should perform a survey of Cloud Storage and Compute Engine sections in the Google Cloud Web Console to make sure everything has been cleaned up successfully.
+
+
+### Fusion Review
+
+Reference Doc:https://docs.google.com/document/d/1zzx3qE8DNFp-jJhWm17nTJExiYWBcO423EiuRva41ZI/edit?tab=t.0
+
+https://github.com/kcotto/fusion_review/blob/main/README.md
+
