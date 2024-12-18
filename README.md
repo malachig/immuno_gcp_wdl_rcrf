@@ -505,7 +505,7 @@ mkdir all
 gzcat $WORKING_BASE/final_results/annotated.expression.vcf.gz | less
 export TUMOR_SAMPLE_ID="100-049-BG004667"
 
-docker run -it --env WORKING_BASE --env TUMOR_SAMPLE_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.0.1 /bin/bash
+docker run -it --env WORKING_BASE --env TUMOR_SAMPLE_ID --env ITB_REVIEW_FILE -v $HOME/:$HOME/ -v $HOME/.config/gcloud:/root/.config/gcloud griffithlab/pvactools:4.4.1 /bin/bash
 
 cd $WORKING_BASE/
 
